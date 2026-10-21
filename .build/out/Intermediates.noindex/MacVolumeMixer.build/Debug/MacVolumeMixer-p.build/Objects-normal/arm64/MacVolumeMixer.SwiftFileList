@@ -1,0 +1,13 @@
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/App/MacVolumeMixerApp.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Models/AudioDevice.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Models/AudioProcess.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/AudioEngineProtocol.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/CoreAudioTapService.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/ProcessWatcher.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/SystemPermissions.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/ViewModels/MixerViewModel.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/Components/AppIconView.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/Components/CustomSlider.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/MenuBar/AppVolumeRowView.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/MenuBar/MasterVolumeView.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/MenuBar/PopoverView.swift

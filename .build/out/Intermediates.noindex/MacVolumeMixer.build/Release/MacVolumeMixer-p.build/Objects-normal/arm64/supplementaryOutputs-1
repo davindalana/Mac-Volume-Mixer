@@ -1,0 +1,11 @@
+{
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/App/MacVolumeMixerApp.swift" : {
+    "abi-baseline-json" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer.abi.json",
+    "const-values" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.swiftconstvalues",
+    "dependencies" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.d",
+    "diagnostics" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.dia",
+    "swiftdoc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer.swiftdoc",
+    "swiftmodule" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer.swiftmodule",
+    "swiftsourceinfo" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer.swiftsourceinfo"
+  }
+}

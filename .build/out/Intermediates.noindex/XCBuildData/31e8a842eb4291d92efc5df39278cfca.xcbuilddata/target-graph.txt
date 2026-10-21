@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'AllExcludingTests' in project 'Aggregate'
+➜ Explicit dependency on target 'MacVolumeMixer-product' in project 'MacVolumeMixer'
+Target 'MacVolumeMixer-product' in project 'MacVolumeMixer' (no dependencies)

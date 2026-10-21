@@ -1,0 +1,76 @@
+{
+  "" : {
+    "const-values" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.swiftconstvalues",
+    "dependencies" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.d",
+    "diagnostics" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.dia",
+    "emit-module-dependencies" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary-emit-module.dia",
+    "pch" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixer-primary.swiftdeps"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/App/MacVolumeMixerApp.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixerApp.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixerApp.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MacVolumeMixerApp.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Models/AudioDevice.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioDevice.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioDevice.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioDevice.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Models/AudioProcess.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioProcess.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioProcess.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioProcess.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/AudioEngine/AudioEngineProtocol.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioEngineProtocol.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioEngineProtocol.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AudioEngineProtocol.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/AudioEngine/CoreAudioTapService.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CoreAudioTapService.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CoreAudioTapService.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CoreAudioTapService.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/AudioEngine/ProcessWatcher.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/ProcessWatcher.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/ProcessWatcher.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/ProcessWatcher.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/SystemPermissions.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/SystemPermissions.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/SystemPermissions.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/SystemPermissions.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/ViewModels/MixerViewModel.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MixerViewModel.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MixerViewModel.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MixerViewModel.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Views/Components/AppIconView.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppIconView.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppIconView.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppIconView.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Views/Components/CustomSlider.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CustomSlider.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CustomSlider.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/CustomSlider.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Views/MenuBar/AppVolumeRowView.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppVolumeRowView.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppVolumeRowView.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/AppVolumeRowView.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Views/MenuBar/MasterVolumeView.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MasterVolumeView.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MasterVolumeView.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/MasterVolumeView.o"
+  },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Views/MenuBar/PopoverView.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/PopoverView.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/PopoverView.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/PopoverView.o"
+  }
+}
