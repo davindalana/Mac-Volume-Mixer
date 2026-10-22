@@ -149,7 +149,7 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
     }
     
     private func setVolumeInternal(pid: pid_t?, bundleID: String?, appName: String?, volume: Float) {
-        let clampedVolume = max(0.0, min(1.0, volume))
+        let clampedVolume = max(0.0, min(2.0, volume))
         let key = bundleID?.lowercased() ?? (pid != nil ? "pid_\(pid!)" : "unknown")
         
         stateLock.lock()
@@ -400,8 +400,10 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             guard let self = self else { return }
             let bID = (bundleID ?? "").lowercased()
             let name = (appName ?? "").lowercased()
-            let volPercent = isMuted ? 0 : Int(round(volume * 100))
+            let volPercent = isMuted ? 0 : min(100, Int(round(volume * 100)))
             let effectiveVolume = isMuted ? 0.0 : volume
+            // HTMLMediaElement e.volume hanya menerima rentang 0.0 ... 1.0, jika > 1.0 akan throw exception
+            let jsVolume = isMuted ? 0.0 : min(1.0, max(0.0, volume))
             
             var script: String? = nil
             
@@ -413,14 +415,14 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
                 let vlcVol = isMuted ? 0 : Int(round(volume * 512))
                 script = "tell application \"VLC\" to set volume \(vlcVol)"
             } else if bID == "com.apple.quicktimeplayerx" || name.contains("quicktime") {
-                script = "tell application \"QuickTime Player\" to if (count of documents) > 0 then set volume of front document to \(effectiveVolume)"
+                script = "tell application \"QuickTime Player\" to if (count of documents) > 0 then set volume of front document to \(jsVolume)"
             } else if bID == "com.apple.safari" || name.contains("safari") {
                 script = """
                 tell application "Safari"
                     if (count of windows) > 0 then
                         try
                             tell current tab of front window
-                                do JavaScript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(effectiveVolume); e.muted = \(isMuted ? "true" : "false"); });"
+                                do JavaScript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(jsVolume); e.muted = \(isMuted ? "true" : "false"); });"
                             end tell
                         end try
                     end if
@@ -433,7 +435,7 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
                     if (count of windows) > 0 then
                         try
                             tell active tab of front window
-                                execute javascript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(effectiveVolume); e.muted = \(isMuted ? "true" : "false"); });"
+                                execute javascript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(jsVolume); e.muted = \(isMuted ? "true" : "false"); });"
                             end tell
                         end try
                     end if
@@ -591,10 +593,10 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             return $0.appName.localizedCaseInsensitiveCompare($1.appName) == .orderedAscending
         }
         
-        // Sinkronkan aplikasi yang memiliki volume tersimpan < 1.0 atau di-mute ke RealtimeMixerEngine
+        // Sinkronkan aplikasi yang memiliki volume tersimpan != 1.0 (attenuated atau boosted) atau di-mute ke RealtimeMixerEngine
         let defUID = self.getDefaultOutputDeviceUID()
         for p in detectedProcesses {
-            if p.volume < 1.0 || p.isMuted {
+            if abs(p.volume - 1.0) > 0.001 || p.isMuted {
                 let key = p.bundleIdentifier?.lowercased() ?? "pid_\(p.pid)"
                 let targets = self.allAudioObjectIDs(for: p.pid, bundleID: p.bundleIdentifier)
                 self.mixerEngine.setVolume(

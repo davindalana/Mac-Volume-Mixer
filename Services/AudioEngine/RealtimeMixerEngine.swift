@@ -35,15 +35,34 @@ private func mixerEngineIOProc(
     let inBuffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: inInputData))
     let outBuffers = UnsafeMutableAudioBufferListPointer(outOutputData)
     
-    for (inBuf, outBuf) in zip(inBuffers, outBuffers) {
+    let inCount = inBuffers.count
+    let outCount = outBuffers.count
+    let commonCount = min(inCount, outCount)
+    
+    for i in 0..<commonCount {
+        let inBuf = inBuffers[i]
+        let outBuf = outBuffers[i]
         guard let inData = inBuf.mData?.assumingMemoryBound(to: Float32.self),
               let outData = outBuf.mData?.assumingMemoryBound(to: Float32.self) else { continue }
         
-        let frameCount = Int(inBuf.mDataByteSize) / MemoryLayout<Float32>.size
-        for i in 0..<frameCount {
-            outData[i] = inData[i] * g
+        let byteSize = min(inBuf.mDataByteSize, outBuf.mDataByteSize)
+        let frameCount = Int(byteSize) / MemoryLayout<Float32>.size
+        for j in 0..<frameCount {
+            let sample = inData[j] * g
+            // Soft-limiting clamping agar tidak terjadi digital clipping saat boost hingga 200%
+            outData[j] = max(-1.0, min(1.0, sample))
         }
     }
+    
+    if outCount > inCount {
+        for i in inCount..<outCount {
+            let outBuf = outBuffers[i]
+            if let outData = outBuf.mData {
+                memset(outData, 0, Int(outBuf.mDataByteSize))
+            }
+        }
+    }
+    
     return noErr
 }
 
@@ -61,7 +80,7 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
         stop()
     }
     
-    /// Mengatur volume aplikasi secara real-time via hardware process tap dan DSP mixing
+    /// Mengatur volume aplikasi secara real-time via hardware process tap dan DSP mixing (0% - 200%)
     public func setVolume(
         for key: String,
         targetObjects: [AudioObjectID],
@@ -74,10 +93,10 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         
-        let effectiveGain = isMuted ? 0.0 : max(0.0, min(1.0, Float32(volume)))
+        let effectiveGain = isMuted ? 0.0 : max(0.0, min(2.0, Float32(volume)))
         
-        // 1. Jika volume 1.0 (100% dan tidak dimute), tidak perlu DSP intercept - bypass native
-        if effectiveGain >= 1.0 {
+        // 1. Jika volume tepat 1.0 (100% dan tidak dimute), tidak perlu DSP intercept - bypass native bit-perfect
+        if abs(effectiveGain - 1.0) < 0.001 {
             if let session = sessions.removeValue(forKey: key) {
                 tearDownSession(session)
                 logger.info("Session DSP untuk \(key) dihentikan (kembali ke 100% native bypass)")
@@ -144,7 +163,9 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
             kAudioAggregateDeviceIsStackedKey: 0,
             kAudioAggregateDeviceMainSubDeviceKey: defaultDeviceUID,
             kAudioAggregateDeviceClockDeviceKey: defaultDeviceUID,
-            kAudioAggregateDeviceSubDeviceListKey: [defaultDeviceUID],
+            kAudioAggregateDeviceSubDeviceListKey: [
+                [kAudioSubDeviceUIDKey: defaultDeviceUID]
+            ],
             kAudioAggregateDeviceTapListKey: [
                 [kAudioSubTapUIDKey: tapUID]
             ]

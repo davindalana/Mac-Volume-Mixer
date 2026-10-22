@@ -118,7 +118,7 @@ public final class MixerViewModel: ObservableObject {
         for proc in processes {
             let bID = (proc.bundleIdentifier ?? "").lowercased()
             if !includedBundleIDs.contains(bID) && !includedPIDs.contains(proc.pid) {
-                if proc.isPlayingAudio || (proc.volume < 1.0) || proc.isMuted {
+                if proc.isPlayingAudio || abs(proc.volume - 1.0) > 0.001 || proc.isMuted {
                     result.append(proc)
                     includedPIDs.insert(proc.pid)
                     if !bID.isEmpty { includedBundleIDs.insert(bID) }
@@ -202,7 +202,10 @@ public final class MixerViewModel: ObservableObject {
         audioEngine.masterVolumePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] vol in
-                self?.masterVolume = vol
+                guard let self = self else { return }
+                if self.masterVolume <= 1.0 || vol < 1.0 {
+                    self.masterVolume = vol
+                }
             }
             .store(in: &cancellables)
         
@@ -252,7 +255,7 @@ public final class MixerViewModel: ObservableObject {
     }
     
     public func updateVolume(for pid: pid_t, volume: Float) {
-        let clamped = max(0.0, min(1.0, volume))
+        let clamped = max(0.0, min(2.0, volume))
         
         var targetBundleID: String? = nil
         var targetPID: pid_t = pid
@@ -324,12 +327,13 @@ public final class MixerViewModel: ObservableObject {
     }
     
     public func updateMasterVolume(_ volume: Float) {
-        let clamped = max(0.0, min(1.0, volume))
+        let clamped = max(0.0, min(2.0, volume))
         self.masterVolume = clamped
         if clamped > 0 && isMasterMuted {
             isMasterMuted = false
             audioEngine.setMasterMute(false)
         }
+        audioEngine.setMasterVolume(min(1.0, clamped))
         masterVolumeUpdateSubject.send(clamped)
     }
     

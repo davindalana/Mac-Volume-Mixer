@@ -41,7 +41,7 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
         self.appName = appName
         self.bundleIdentifier = bundleIdentifier
         self.icon = icon
-        self.volume = max(0.0, min(1.0, volume))
+        self.volume = max(0.0, min(2.0, volume))
         self.isMuted = isMuted
         self.isPlayingAudio = isPlayingAudio
     }

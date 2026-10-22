@@ -53,20 +53,20 @@ public struct AppVolumeRowView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             
-            Spacer(minLength: 8)
+            Spacer(minLength: 6)
             
             // MARK: - 3. Mute Button (Speaker with Slash)
             Button(action: onMuteToggle) {
                 Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.slash")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(process.isMuted ? Color(red: 1.0, green: 0.35, blue: 0.35) : (isHovered ? Color.white : Color(white: 0.6)))
-                    .frame(width: 22, height: 22)
+                    .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(process.isMuted ? "Unmute \(cleanAppName)" : "Mute \(cleanAppName)")
             
-            // MARK: - 4. Volume Slider (Dark Track, Orange Progress, White Knob)
+            // MARK: - 4. Volume Slider (Dark Track, Orange Progress, White Knob, 0% - 200%)
             CustomSlider(
                 value: Binding(
                     get: { localVolume },
@@ -75,12 +75,20 @@ public struct AppVolumeRowView: View {
                         onVolumeChange(newVal)
                     }
                 ),
+                maxValue: 2.0,
+                baselineValue: 1.0,
                 isMuted: process.isMuted,
                 accentColor: Color(red: 1.0, green: 0.584, blue: 0.0)
             )
-            .frame(width: 140)
+            .frame(width: 120)
             
-            // MARK: - 5. Optional Remove Button (on hover)
+            // MARK: - 5. Percentage Label (e.g. 100%, 150%, 200%)
+            Text("\(Int(round(localVolume * 100)))%")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundColor(process.isMuted ? Color(white: 0.45) : (localVolume > 1.0 ? Color(red: 1.0, green: 0.75, blue: 0.2) : Color(white: 0.75)))
+                .frame(width: 36, alignment: .trailing)
+            
+            // MARK: - 6. Optional Remove Button (on hover)
             if let onRemove = onRemove, isHovered {
                 Button(action: onRemove) {
                     Image(systemName: "xmark")
@@ -90,7 +98,7 @@ public struct AppVolumeRowView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Remove from Mixer")
-            } else if onRemove != nil {
+            } else {
                 Spacer().frame(width: 14)
             }
         }
