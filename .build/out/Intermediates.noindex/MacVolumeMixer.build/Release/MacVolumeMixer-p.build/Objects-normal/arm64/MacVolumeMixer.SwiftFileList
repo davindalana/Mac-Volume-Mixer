@@ -4,6 +4,7 @@
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/AudioEngineProtocol.swift
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/CoreAudioTapService.swift
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/ProcessWatcher.swift
+/Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/AudioEngine/RealtimeMixerEngine.swift
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Services/SystemPermissions.swift
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/ViewModels/MixerViewModel.swift
 /Users/davindalana/Documents/Project/Mac\ Volume\ Mixer/Views/Components/AppIconView.swift

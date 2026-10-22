@@ -13,11 +13,26 @@ public final class SystemPermissions: ObservableObject {
     
     @Published public private(set) var audioCaptureStatus: PermissionStatus = .notDetermined
     @Published public private(set) var microphoneStatus: PermissionStatus = .notDetermined
+    @Published public var isBannerDismissed: Bool {
+        didSet {
+            UserDefaults.standard.set(isBannerDismissed, forKey: "hasDismissedAudioPermissionBanner")
+        }
+    }
     
     public static let shared = SystemPermissions()
     
     public init() {
+        self.isBannerDismissed = UserDefaults.standard.bool(forKey: "hasDismissedAudioPermissionBanner")
         refreshStatus()
+        
+        // Auto refresh saat pengguna kembali dari System Settings
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshStatus()
+        }
     }
     
     /// Memperbarui status izin audio capture dan microphone saat ini
@@ -65,5 +80,15 @@ public final class SystemPermissions: ObservableObject {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)
         }
+    }
+    
+    /// Me-restart aplikasi agar macOS menerapkan token izin TCC yang baru saja diaktifkan
+    public func restartApp() {
+        let appUrl = Bundle.main.bundleURL
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", appUrl.path]
+        try? task.run()
+        NSApplication.shared.terminate(nil)
     }
 }

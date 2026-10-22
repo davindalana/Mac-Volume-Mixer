@@ -28,6 +28,7 @@ let package = Package(
                 "ViewModels/MixerViewModel.swift",
                 "Services/AudioEngine/AudioEngineProtocol.swift",
                 "Services/AudioEngine/CoreAudioTapService.swift",
+                "Services/AudioEngine/RealtimeMixerEngine.swift",
                 "Services/AudioEngine/ProcessWatcher.swift",
                 "Services/SystemPermissions.swift",
                 "Views/MenuBar/PopoverView.swift",

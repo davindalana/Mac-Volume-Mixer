@@ -1,18 +1,34 @@
 import SwiftUI
+import AppKit
+
+/// Delegate untuk memastikan hanya ada satu instance MacVolumeMixer yang berjalan.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.macvolumemixer.app"
+        let runningInstances = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        for app in runningInstances {
+            if app.processIdentifier != currentPID {
+                // Instance lain sudah berjalan, tutup instance duplikat ini
+                NSApplication.shared.terminate(nil)
+                return
+            }
+        }
+    }
+}
 
 /// Entry point utama aplikasi macOS Volume Mixer.
 /// Menjalankan aplikasi secara native di Menu Bar menggunakan SwiftUI `MenuBarExtra` dengan gaya `.window`.
 @main
 struct MacVolumeMixerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var viewModel = MixerViewModel()
     
     var body: some Scene {
         MenuBarExtra {
             PopoverView(viewModel: viewModel)
         } label: {
-            HStack(spacing: 3) {
-                Image(systemName: "slider.vertical.3")
-            }
+            Image(systemName: "slider.vertical.3")
         }
         .menuBarExtraStyle(.window)
     }

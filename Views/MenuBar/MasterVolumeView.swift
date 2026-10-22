@@ -74,7 +74,7 @@ public struct MasterVolumeView: View {
                         set: { viewModel.updateMasterVolume($0) }
                     ),
                     isMuted: viewModel.isMasterMuted,
-                    accentColors: [Color.blue, Color.purple]
+                    accentColor: Color(red: 1.0, green: 0.58, blue: 0.0)
                 )
                 
                 // Percentage Text

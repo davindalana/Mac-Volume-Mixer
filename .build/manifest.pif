@@ -5,11 +5,11 @@
       "name" : "MacVolumeMixer",
       "path" : "/Users/davindalana/Documents/Project/Mac Volume Mixer",
       "projects" : [
-        "c85c3993722d2bed764f1424fa92cd6dd4510851c420e02f1eda543dce2f9927",
+        "b2831e504cad17de6b761a6974ded3a1034da2abfa91b0ee599569386d651a6e",
         "294d78df11844660c167c4450821b76f84e39ff96ed713b7e326f02cc5a4c426"
       ]
     },
-    "signature" : "29887e911ddfee7fd699bd20f9ee05bbe517fae336ddc2d0c75a4fe46e7a7b27",
+    "signature" : "1571512aba31e6ec4568369394a4dcc04e94f8872d5c68c2ec5e63eaccf63abe",
     "type" : "workspace"
   },
   {
@@ -249,6 +249,14 @@
               {
                 "fileType" : "sourcecode.swift",
                 "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_6",
+                "name" : "Services/AudioEngine/RealtimeMixerEngine.swift",
+                "path" : "Services/AudioEngine/RealtimeMixerEngine.swift",
+                "sourceTree" : "<group>",
+                "type" : "file"
+              },
+              {
+                "fileType" : "sourcecode.swift",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_7",
                 "name" : "Services/SystemPermissions.swift",
                 "path" : "Services/SystemPermissions.swift",
                 "sourceTree" : "<group>",
@@ -256,7 +264,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_7",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_8",
                 "name" : "ViewModels/MixerViewModel.swift",
                 "path" : "ViewModels/MixerViewModel.swift",
                 "sourceTree" : "<group>",
@@ -264,7 +272,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_8",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_9",
                 "name" : "Views/Components/AppIconView.swift",
                 "path" : "Views/Components/AppIconView.swift",
                 "sourceTree" : "<group>",
@@ -272,7 +280,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_9",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_10",
                 "name" : "Views/Components/CustomSlider.swift",
                 "path" : "Views/Components/CustomSlider.swift",
                 "sourceTree" : "<group>",
@@ -280,7 +288,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_10",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_11",
                 "name" : "Views/MenuBar/AppVolumeRowView.swift",
                 "path" : "Views/MenuBar/AppVolumeRowView.swift",
                 "sourceTree" : "<group>",
@@ -288,7 +296,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_11",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_12",
                 "name" : "Views/MenuBar/MasterVolumeView.swift",
                 "path" : "Views/MenuBar/MasterVolumeView.swift",
                 "sourceTree" : "<group>",
@@ -296,7 +304,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_12",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_13",
                 "name" : "Views/MenuBar/PopoverView.swift",
                 "path" : "Views/MenuBar/PopoverView.swift",
                 "sourceTree" : "<group>",
@@ -362,6 +370,14 @@
               {
                 "fileType" : "sourcecode.swift",
                 "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_6",
+                "name" : "Services/AudioEngine/RealtimeMixerEngine.swift",
+                "path" : "Services/AudioEngine/RealtimeMixerEngine.swift",
+                "sourceTree" : "<group>",
+                "type" : "file"
+              },
+              {
+                "fileType" : "sourcecode.swift",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_7",
                 "name" : "Services/SystemPermissions.swift",
                 "path" : "Services/SystemPermissions.swift",
                 "sourceTree" : "<group>",
@@ -369,7 +385,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_7",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_8",
                 "name" : "ViewModels/MixerViewModel.swift",
                 "path" : "ViewModels/MixerViewModel.swift",
                 "sourceTree" : "<group>",
@@ -377,7 +393,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_8",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_9",
                 "name" : "Views/Components/AppIconView.swift",
                 "path" : "Views/Components/AppIconView.swift",
                 "sourceTree" : "<group>",
@@ -385,7 +401,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_9",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_10",
                 "name" : "Views/Components/CustomSlider.swift",
                 "path" : "Views/Components/CustomSlider.swift",
                 "sourceTree" : "<group>",
@@ -393,7 +409,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_10",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_11",
                 "name" : "Views/MenuBar/AppVolumeRowView.swift",
                 "path" : "Views/MenuBar/AppVolumeRowView.swift",
                 "sourceTree" : "<group>",
@@ -401,7 +417,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_11",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_12",
                 "name" : "Views/MenuBar/MasterVolumeView.swift",
                 "path" : "Views/MenuBar/MasterVolumeView.swift",
                 "sourceTree" : "<group>",
@@ -409,7 +425,7 @@
               },
               {
                 "fileType" : "sourcecode.swift",
-                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_12",
+                "guid" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_13",
                 "name" : "Views/MenuBar/PopoverView.swift",
                 "path" : "Views/MenuBar/PopoverView.swift",
                 "sourceTree" : "<group>",
@@ -435,12 +451,12 @@
       "projectIsPackage" : "true",
       "projectName" : "MacVolumeMixer",
       "targets" : [
-        "b234216033a47683c3ed672bd0192212bd7f579310998156c5f5ef1e53c38da4",
-        "2b481d609afa1242d932b3a8e3c4e53e65b1c1b7572399f0760a719152dad776",
+        "12e9bf7c1769a39c89d70f707cfb4ea63a61bcdfd051b81609dc427056a884f1",
+        "6e96a0e51d6e35785ca6774743ab879f2e4598bc8e8b47d245b90ecc5f99443f",
         "cc128331bff071e6e8f7c72c90d78e03fc9d785e3720f300c7135c5a82f19326"
       ]
     },
-    "signature" : "c85c3993722d2bed764f1424fa92cd6dd4510851c420e02f1eda543dce2f9927",
+    "signature" : "b2831e504cad17de6b761a6974ded3a1034da2abfa91b0ee599569386d651a6e",
     "type" : "project"
   },
   {
@@ -661,6 +677,15 @@
 
               ],
               "removeHeadersOnCopy" : "false"
+            },
+            {
+              "codeSignOnCopy" : "false",
+              "fileReference" : "PACKAGE:mac volume mixer::MAINGROUP::REF_2::REF_13",
+              "guid" : "PACKAGE-PRODUCT:mac volume mixer_MacVolumeMixer.MacVolumeMixer::BUILDPHASE_0::13",
+              "platformFilters" : [
+
+              ],
+              "removeHeadersOnCopy" : "false"
             }
           ],
           "guid" : "PACKAGE-PRODUCT:mac volume mixer_MacVolumeMixer.MacVolumeMixer::BUILDPHASE_0",
@@ -686,7 +711,7 @@
       "productTypeIdentifier" : "com.apple.product-type.tool",
       "type" : "standard"
     },
-    "signature" : "b234216033a47683c3ed672bd0192212bd7f579310998156c5f5ef1e53c38da4",
+    "signature" : "12e9bf7c1769a39c89d70f707cfb4ea63a61bcdfd051b81609dc427056a884f1",
     "type" : "target"
   },
   {
@@ -938,6 +963,15 @@
 
               ],
               "removeHeadersOnCopy" : "false"
+            },
+            {
+              "codeSignOnCopy" : "false",
+              "fileReference" : "PACKAGE:mac volume mixer::MAINGROUP::REF_3::REF_13",
+              "guid" : "PACKAGE-TARGET:MacVolumeMixer-51BBE917FBFAA09C-testable::BUILDPHASE_0::13",
+              "platformFilters" : [
+
+              ],
+              "removeHeadersOnCopy" : "false"
             }
           ],
           "guid" : "PACKAGE-TARGET:MacVolumeMixer-51BBE917FBFAA09C-testable::BUILDPHASE_0",
@@ -963,7 +997,7 @@
       "productTypeIdentifier" : "org.swift.product-type.common.object",
       "type" : "standard"
     },
-    "signature" : "2b481d609afa1242d932b3a8e3c4e53e65b1c1b7572399f0760a719152dad776",
+    "signature" : "6e96a0e51d6e35785ca6774743ab879f2e4598bc8e8b47d245b90ecc5f99443f",
     "type" : "target"
   },
   {

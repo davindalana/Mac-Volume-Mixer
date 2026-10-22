@@ -38,6 +38,11 @@
     "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/ProcessWatcher.bc",
     "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/ProcessWatcher.o"
   },
+  "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/AudioEngine/RealtimeMixerEngine.swift" : {
+    "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/RealtimeMixerEngine.o",
+    "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/RealtimeMixerEngine.bc",
+    "object" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/RealtimeMixerEngine.o"
+  },
   "/Users/davindalana/Documents/Project/Mac Volume Mixer/Services/SystemPermissions.swift" : {
     "index-unit-output-path" : "/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/SystemPermissions.o",
     "llvm-bc" : "/Users/davindalana/Documents/Project/Mac Volume Mixer/.build/out/Intermediates.noindex/MacVolumeMixer.build/Release/MacVolumeMixer-p.build/Objects-normal/arm64/SystemPermissions.bc",

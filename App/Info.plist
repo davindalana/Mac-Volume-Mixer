@@ -30,5 +30,9 @@
     <!-- Deskripsi izin sistem audio -->
     <key>NSMicrophoneUsageDescription</key>
     <string>Mac Volume Mixer requires audio access to monitor and adjust volume levels for active running applications.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>Mac Volume Mixer requires audio capture to monitor and adjust volume levels for active running applications.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Mac Volume Mixer requires AppleEvents permission to adjust sound volume for media applications like Spotify, Music, and browsers.</string>
 </dict>
 </plist>

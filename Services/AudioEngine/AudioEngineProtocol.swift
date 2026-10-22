@@ -17,11 +17,17 @@ public protocol AudioEngineProtocol: AnyObject, Sendable {
     ///   - volume: Nilai volume dari 0.0 sampai 1.0
     func setVolume(for pid: pid_t, volume: Float)
     
+    /// Mengatur level volume untuk aplikasi berdasarkan Bundle Identifier
+    func setVolume(forBundleID bundleID: String, volume: Float)
+    
     /// Mengatur status mute proses tertentu
     /// - Parameters:
     ///   - pid: Process ID aplikasi
     ///   - isMuted: true jika di-mute, false jika unmuted
     func setMute(for pid: pid_t, isMuted: Bool)
+    
+    /// Mengatur status mute aplikasi berdasarkan Bundle Identifier
+    func setMute(forBundleID bundleID: String, isMuted: Bool)
     
     /// Mendapatkan volume master sistem saat ini (0.0 - 1.0)
     func getMasterVolume() -> Float
@@ -54,4 +60,9 @@ public protocol AudioEngineProtocol: AnyObject, Sendable {
     
     /// Combine Publisher untuk perubahan status mute master sistem
     var masterMutePublisher: AnyPublisher<Bool, Never> { get }
+}
+
+public extension AudioEngineProtocol {
+    func setVolume(forBundleID bundleID: String, volume: Float) {}
+    func setMute(forBundleID bundleID: String, isMuted: Bool) {}
 }

@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Container tampilan utama untuk popup menu bar (Popover).
-/// Menggabungkan header, kontrol master, pencarian, list aplikasi aktif, dan footer aksi aplikasi.
+/// Antarmuka MenuBar Popover berpenampilan elegan dan modern (SoundSource dark aesthetic).
+/// Menampilkan kontrol Master "Other Apps", baris aplikasi individual (Finder, Music, Safari, WhatsApp, dll),
+/// serta tombol "+ Add App" untuk menambah konfigurasi aplikasi sesuai referensi gambar.
 public struct PopoverView: View {
     @ObservedObject public var viewModel: MixerViewModel
     @State private var isSpinningRefresh: Bool = false
@@ -11,254 +12,238 @@ public struct PopoverView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 0) {
-            // MARK: - Header
-            headerView
-                .padding(.horizontal, 14)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-            
-            // MARK: - Permission Alert Banner (if needed)
-            if viewModel.permissionStatus != .authorized {
-                permissionBannerView
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
+        VStack(spacing: 4) {
+            // MARK: - Optional Discreet Permission Notice
+            if viewModel.permissionStatus != .authorized && !viewModel.isBannerDismissed {
+                discreetPermissionBanner
+                    .padding(.horizontal, 8)
+                    .padding(.top, 6)
             }
             
-            // MARK: - Master Volume Card
-            MasterVolumeView(viewModel: viewModel)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
+            // MARK: - Mixer Rows Container
+            VStack(spacing: 2) {
+                // 1. "Other Apps" Row (Master System Hardware Volume)
+                otherAppsRow
+                
+                // 2. Individual App Rows (Finder, Music, Safari, WhatsApp, etc.)
+                ForEach(viewModel.displayProcesses) { process in
+                    AppVolumeRowView(
+                        process: process,
+                        onVolumeChange: { newVolume in
+                            viewModel.updateVolume(for: process.pid, volume: newVolume)
+                        },
+                        onMuteToggle: {
+                            viewModel.toggleMute(for: process.pid)
+                        },
+                        onRemove: (viewModel.pinnedAppBundleIDs.contains(process.bundleIdentifier ?? "")) ? {
+                            if let bID = process.bundleIdentifier {
+                                viewModel.removePinnedApp(bundleIdentifier: bID)
+                            }
+                        } : nil
+                    )
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
             
-            // MARK: - Search Field
-            searchBarView
-                .padding(.horizontal, 12)
-                .padding(.bottom, 6)
-            
-            // MARK: - Section Title
-            HStack {
-                Text("APPLICATIONS (\(viewModel.filteredProcesses.count))")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
+            // MARK: - Footer Bar (Settings & Add App)
+            HStack(alignment: .center) {
+                // Settings & Output Device Menu
+                Menu {
+                    Section("Output Device") {
+                        ForEach(viewModel.outputDevices) { device in
+                            Button(action: {
+                                viewModel.selectOutputDevice(device)
+                            }) {
+                                HStack {
+                                    Text(device.name)
+                                    if device.id == viewModel.selectedOutputDevice?.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    Button("Refresh Audio") {
+                        viewModel.refresh()
+                    }
+                    
+                    if viewModel.permissionStatus != .authorized {
+                        Button("Audio Permissions...") {
+                            viewModel.requestPermissions()
+                        }
+                    }
+                    
+                    Button("Restart Mixer") {
+                        viewModel.restartApp()
+                    }
+                    
+                    Button("Setup Safari YouTube...") {
+                        viewModel.showSafariGuide()
+                    }
+                    
+                    Divider()
+                    
+                    Button("Quit MacVolumeMixer") {
+                        viewModel.quitApp()
+                    }
+                    .keyboardShortcut("q", modifiers: .command)
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(white: 0.45))
+                        .frame(width: 20, height: 20)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
                 
                 Spacer()
                 
-                let activeCount = viewModel.processes.filter { $0.isPlayingAudio }.count
-                if activeCount > 0 {
-                    HStack(spacing: 3) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 5, height: 5)
-                        Text("\(activeCount) active")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 4)
-            
-            // MARK: - Scrollable Apps List
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    if viewModel.filteredProcesses.isEmpty {
-                        emptyStateView
+                // "+ Add App" Button (Persis screenshot)
+                Menu {
+                    if viewModel.availableRunningApps.isEmpty {
+                        Text("No other running apps")
                     } else {
-                        ForEach(viewModel.filteredProcesses) { process in
-                            AppVolumeRowView(
-                                process: process,
-                                onVolumeChange: { newVolume in
-                                    viewModel.updateVolume(for: process.pid, volume: newVolume)
-                                },
-                                onMuteToggle: {
-                                    viewModel.toggleMute(for: process.pid)
+                        ForEach(viewModel.availableRunningApps, id: \.processIdentifier) { app in
+                            Button(action: {
+                                if let bID = app.bundleIdentifier {
+                                    viewModel.addPinnedApp(bundleIdentifier: bID)
                                 }
-                            )
+                            }) {
+                                HStack {
+                                    if let icon = app.icon {
+                                        Image(nsImage: icon)
+                                    }
+                                    Text(app.localizedName ?? "App")
+                                }
+                            }
                         }
                     }
+                    
+                    Divider()
+                    
+                    Button("Choose Other App...") {
+                        viewModel.chooseAppFromDisk()
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text("Add App")
+                            .font(.system(size: 11.5, weight: .regular))
+                    }
+                    .foregroundColor(Color(white: 0.65))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .frame(maxHeight: 280)
-            
-            // MARK: - Divider
-            Divider()
-                .padding(.top, 4)
-            
-            // MARK: - Footer
-            footerView
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 6)
         }
-        .frame(width: 340)
-        .background(.ultraThinMaterial)
+        .frame(width: 325)
+        .background(Color(red: 0.125, green: 0.125, blue: 0.13))
+        .onAppear {
+            viewModel.refresh()
+        }
     }
     
-    // MARK: - Subviews
-    
-    private var headerView: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Image(systemName: "slider.vertical.3")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.accentColor)
+    // MARK: - Other Apps Row (Master Hardware Control)
+    private var otherAppsRow: some View {
+        HStack(spacing: 8) {
+            // 9-dot launcher grid icon persis screenshot
+            ZStack {
+                RoundedRectangle(cornerRadius: 4.5)
+                    .fill(Color(white: 0.28))
+                    .frame(width: 22, height: 22)
                 
-                Text("Volume Mixer")
-                    .font(.system(size: 13, weight: .bold))
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(3.2), spacing: 2), count: 3), spacing: 2) {
+                    ForEach(0..<9) { _ in
+                        RoundedRectangle(cornerRadius: 0.6)
+                            .fill(Color(white: 0.88))
+                            .frame(width: 3.2, height: 3.2)
+                    }
+                }
             }
+            .frame(width: 22, height: 22)
             
-            Spacer()
+            Text("Other Apps")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundColor(viewModel.isMasterMuted ? Color(white: 0.5) : Color(white: 0.95))
             
-            // Tombol Refresh
+            Spacer(minLength: 8)
+            
+            // Master Mute Button
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    isSpinningRefresh = true
-                }
-                viewModel.refresh()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    isSpinningRefresh = false
-                }
+                viewModel.toggleMasterMute()
             }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .rotationEffect(.degrees(isSpinningRefresh ? 360 : 0))
-                    .frame(width: 20, height: 20)
+                Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : "speaker.slash")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(viewModel.isMasterMuted ? Color(red: 1.0, green: 0.35, blue: 0.35) : Color(white: 0.6))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Refresh Audio Processes")
+            .help(viewModel.isMasterMuted ? "Unmute Master" : "Mute Master")
+            
+            // Master Volume Slider
+            CustomSlider(
+                value: Binding(
+                    get: { viewModel.masterVolume },
+                    set: { viewModel.updateMasterVolume($0) }
+                ),
+                isMuted: viewModel.isMasterMuted,
+                accentColor: Color(red: 1.0, green: 0.584, blue: 0.0)
+            )
+            .frame(width: 140)
+            
+            // Placeholder alignment spacing matching remove button
+            Spacer().frame(width: 14)
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3.5)
     }
     
-    private var permissionBannerView: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-                .font(.system(size: 13))
+    // MARK: - Discreet Permission Banner (can be permanently dismissed)
+    private var discreetPermissionBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 10))
+                .foregroundColor(Color.orange)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Audio Permission Required")
-                    .font(.system(size: 11, weight: .bold))
-                Text("Allow Screen & Audio Recording to mix per-app audio.")
-                    .font(.system(size: 9.5))
-                    .foregroundColor(.secondary)
-            }
+            Text("Audio recording permission recommended.")
+                .font(.system(size: 10))
+                .foregroundColor(Color(white: 0.8))
             
             Spacer()
             
-            Button("Grant") {
+            Button("Settings") {
                 viewModel.requestPermissions()
             }
-            .buttonStyle(.borderedProminent)
+            .font(.system(size: 9.5, weight: .medium))
+            .buttonStyle(.bordered)
             .controlSize(.mini)
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.orange.opacity(0.12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                )
-        )
-    }
-    
-    private var searchBarView: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
             
-            TextField("Filter apps...", text: $viewModel.searchQuery)
-                .textFieldStyle(.plain)
-                .font(.system(size: 11))
-            
-            if !viewModel.searchQuery.isEmpty {
-                Button(action: {
-                    viewModel.searchQuery = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color.primary.opacity(0.04))
-        .cornerRadius(6)
-    }
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "speaker.slash")
-                .font(.system(size: 26))
-                .foregroundColor(.secondary.opacity(0.6))
-                .padding(.top, 16)
-            
-            Text(viewModel.searchQuery.isEmpty ? "No active audio apps" : "No apps match \"\(viewModel.searchQuery)\"")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
-            
-            Text("Launch an app like Music, Safari, or Spotify to adjust its volume.")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary.opacity(0.7))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private var footerView: some View {
-        HStack {
-            // Indikator status Engine
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(viewModel.isMonitoring ? Color.green : Color.orange)
-                    .frame(width: 6, height: 6)
-                
-                Text(viewModel.isMonitoring ? "CoreAudio Tap Active" : "Paused")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Tombol Izin (jika diperlukan)
-            if viewModel.permissionStatus != .authorized {
-                Button(action: {
-                    viewModel.requestPermissions()
-                }) {
-                    Text("Permissions")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.orange)
-                }
-                .buttonStyle(.plain)
-                
-                Text("•")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
-            
-            // Tombol Quit
             Button(action: {
-                viewModel.quitApp()
+                viewModel.dismissPermissionBanner()
             }) {
-                HStack(spacing: 3) {
-                    Text("Quit")
-                        .font(.system(size: 10, weight: .medium))
-                    Text("⌘Q")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary.opacity(0.8))
-                }
-                .foregroundColor(.secondary)
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(Color(white: 0.6))
+                    .padding(2)
             }
             .buttonStyle(.plain)
-            .keyboardShortcut("q", modifiers: .command)
+            .help("Dismiss permanently")
         }
+        .padding(5)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.orange.opacity(0.12))
+        )
     }
 }
 
