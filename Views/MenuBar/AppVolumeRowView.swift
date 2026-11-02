@@ -45,25 +45,25 @@ public struct AppVolumeRowView: View {
     
     public var body: some View {
         HStack(spacing: 8) {
-            // MARK: - 1. App Icon
+            // MARK: - 1. App Icon with Active Audio Indicator
             ZStack(alignment: .bottomTrailing) {
-                AppIconView(icon: process.icon, size: 22)
+                AppIconView(icon: process.icon, size: 24)
                 
                 if process.isPlayingAudio {
                     Circle()
-                        .fill(Color(red: 0.2, green: 0.85, blue: 0.35))
-                        .frame(width: 5, height: 5)
-                        .overlay(Circle().stroke(Color.black.opacity(0.8), lineWidth: 0.7))
+                        .fill(Color(red: 0.18, green: 0.82, blue: 0.38))
+                        .frame(width: 5.5, height: 5.5)
+                        .overlay(Circle().stroke(Color.black.opacity(0.85), lineWidth: 0.8))
                         .offset(x: 1, y: 1)
                 }
             }
-            .frame(width: 22, height: 22)
+            .frame(width: 24, height: 24)
             
             // MARK: - 2. App Name & Output Device Indicator
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(cleanAppName)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(process.isMuted ? Color(white: 0.5) : Color(white: 0.95))
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundColor(process.isMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 
@@ -100,33 +100,45 @@ public struct AppVolumeRowView: View {
                             Image(systemName: currentDevice?.systemIconName ?? "speaker.wave.2")
                                 .font(.system(size: 8))
                             Text(currentDevice?.name ?? "Default Output")
-                                .font(.system(size: 9.5))
+                                .font(.system(size: 9.5, weight: .regular))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 7))
+                                .font(.system(size: 6.5))
+                                .opacity(0.6)
                         }
-                        .foregroundColor(process.outputDeviceUID != nil ? Color.orange : Color(white: 0.5))
+                        .foregroundColor(process.outputDeviceUID != nil ? Color.accentColor : Color.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+                                .fill(process.outputDeviceUID != nil ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+                        )
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
                 }
             }
+            .frame(minWidth: 80, alignment: .leading)
             
-            Spacer(minLength: 6)
+            Spacer(minLength: 4)
             
             // MARK: - 3. Mute Button (Speaker with Slash)
             Button(action: onMuteToggle) {
-                Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.slash")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(process.isMuted ? Color(red: 1.0, green: 0.35, blue: 0.35) : (isHovered ? Color.white : Color(white: 0.6)))
+                Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(process.isMuted ? Color.red.opacity(0.85) : (isHovered ? Color.primary : Color.secondary))
                     .frame(width: 20, height: 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4.5, style: .continuous)
+                            .fill(process.isMuted ? Color.red.opacity(0.14) : Color.clear)
+                    )
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(process.isMuted ? "Unmute \(cleanAppName)" : "Mute \(cleanAppName)")
             
-            // MARK: - 4. Volume Slider (Dark Track, Orange Progress, White Knob, 0% - 200%)
+            // MARK: - 4. Volume Slider (Modern macOS Accent, 0% - 200%)
             CustomSlider(
                 value: Binding(
                     get: { localVolume },
@@ -138,35 +150,35 @@ public struct AppVolumeRowView: View {
                 maxValue: 2.0,
                 baselineValue: 1.0,
                 isMuted: process.isMuted,
-                accentColor: Color(red: 1.0, green: 0.584, blue: 0.0)
+                accentColor: Color.accentColor
             )
-            .frame(width: 120)
+            .frame(width: 100)
             
             // MARK: - 5. Percentage Label (e.g. 100%, 150%, 200%)
             Text("\(Int(round(localVolume * 100)))%")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundColor(process.isMuted ? Color(white: 0.45) : (localVolume > 1.0 ? Color(red: 1.0, green: 0.75, blue: 0.2) : Color(white: 0.75)))
-                .frame(width: 36, alignment: .trailing)
+                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                .foregroundColor(process.isMuted ? Color.secondary.opacity(0.5) : (localVolume > 1.0 ? Color.orange : Color.secondary))
+                .frame(width: 34, alignment: .trailing)
             
-            // MARK: - 6. Optional Remove Button (on hover)
+            // MARK: - 6. Optional Remove Button (16pt)
             if let onRemove = onRemove, isHovered {
                 Button(action: onRemove) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(Color(white: 0.5))
-                        .frame(width: 14, height: 14)
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color.secondary.opacity(0.65))
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
                 .help("Remove from Mixer")
             } else {
-                Spacer().frame(width: 14)
+                Spacer().frame(width: 16)
             }
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 3.5)
+        .padding(.vertical, 5)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(isHovered ? Color.primary.opacity(0.04) : Color.clear)
         )
         .contextMenu {
             if let onRemove = onRemove {
@@ -175,7 +187,9 @@ public struct AppVolumeRowView: View {
             Button(process.isMuted ? "Unmute" : "Mute", action: onMuteToggle)
         }
         .onHover { hovering in
-            isHovered = hovering
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isHovered = hovering
+            }
         }
         .onChange(of: process.volume) { _, newVol in
             localVolume = newVol

@@ -38,12 +38,12 @@ fi
 echo "🔏 Menandatangani aplikasi dengan designated requirement permanen..."
 codesign --force --deep --identifier "com.macvolumemixer.app" -r "$REQ_FILE" --sign - "$APP_BUNDLE"
 
-# Pindahkan / buat shortcut ke ~/Applications
-USER_APPS="$HOME/Applications"
-mkdir -p "$USER_APPS"
-rm -rf "$USER_APPS/$APP_NAME.app"
-cp -R "$APP_BUNDLE" "$USER_APPS/$APP_NAME.app"
+# Pindahkan / pasang HANYA SATU file aplikasi di /Applications sistem
+SYS_APPS="/Applications"
+rm -rf "$SYS_APPS/$APP_NAME.app"
+rm -rf "$HOME/Applications/$APP_NAME.app"
+mv "$APP_BUNDLE" "$SYS_APPS/$APP_NAME.app"
 
-echo "✅ Berhasil! $APP_NAME.app telah terpasang di: $USER_APPS/$APP_NAME.app"
+echo "✅ Berhasil! HANYA SATU $APP_NAME.app yang dipasang di: $SYS_APPS/$APP_NAME.app"
 echo "👉 Designated requirement:"
-codesign -d -r- "$USER_APPS/$APP_NAME.app"
+codesign -d -r- "$SYS_APPS/$APP_NAME.app"

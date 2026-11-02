@@ -87,16 +87,20 @@ public final class MacSliderNSView: NSView {
         didSet { needsDisplay = true }
     }
     
-    public var trackColor: NSColor = NSColor(white: 0.32, alpha: 1.0)
+    public var trackColor: NSColor = NSColor(white: 0.35, alpha: 0.6)
     public var onValueChanged: ((Float) -> Void)?
     public var onEditingChanged: ((Bool) -> Void)?
     
     private let knobRadius: CGFloat = 6.0
-    private let trackHeight: CGFloat = 3.0
+    private let trackHeight: CGFloat = 3.5
     private var isDragging: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
     
     public override var isFlipped: Bool { true }
+    
+    public override var intrinsicContentSize: NSSize {
+        return NSSize(width: 100, height: 16)
+    }
     
     public override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
