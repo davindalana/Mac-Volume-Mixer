@@ -29,6 +29,12 @@ public protocol AudioEngineProtocol: AnyObject, Sendable {
     /// Mengatur status mute aplikasi berdasarkan Bundle Identifier
     func setMute(forBundleID bundleID: String, isMuted: Bool)
     
+    /// Mengatur output device khusus untuk proses tertentu berdasarkan PID
+    func setOutputDevice(for pid: pid_t, deviceUID: String?)
+    
+    /// Mengatur output device khusus untuk aplikasi berdasarkan Bundle Identifier
+    func setOutputDevice(forBundleID bundleID: String, deviceUID: String?)
+    
     /// Mendapatkan volume master sistem saat ini (0.0 - 1.0)
     func getMasterVolume() -> Float
     
@@ -65,4 +71,6 @@ public protocol AudioEngineProtocol: AnyObject, Sendable {
 public extension AudioEngineProtocol {
     func setVolume(forBundleID bundleID: String, volume: Float) {}
     func setMute(forBundleID bundleID: String, isMuted: Bool) {}
+    func setOutputDevice(for pid: pid_t, deviceUID: String?) {}
+    func setOutputDevice(forBundleID bundleID: String, deviceUID: String?) {}
 }

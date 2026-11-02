@@ -27,6 +27,9 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
     /// Indikator apakah aplikasi saat ini sedang aktif memancarkan sinyal audio
     public var isPlayingAudio: Bool
     
+    /// UID dari output device khusus untuk aplikasi ini (nil jika mengikuti output default sistem)
+    public var outputDeviceUID: String?
+    
     // MARK: - Initializer
     public init(
         pid: pid_t,
@@ -35,7 +38,8 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
         icon: NSImage? = nil,
         volume: Float = 1.0,
         isMuted: Bool = false,
-        isPlayingAudio: Bool = false
+        isPlayingAudio: Bool = false,
+        outputDeviceUID: String? = nil
     ) {
         self.pid = pid
         self.appName = appName
@@ -44,6 +48,7 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
         self.volume = max(0.0, min(2.0, volume))
         self.isMuted = isMuted
         self.isPlayingAudio = isPlayingAudio
+        self.outputDeviceUID = outputDeviceUID
     }
     
     // MARK: - Computed Properties
@@ -69,7 +74,8 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
                lhs.bundleIdentifier == rhs.bundleIdentifier &&
                lhs.volume == rhs.volume &&
                lhs.isMuted == rhs.isMuted &&
-               lhs.isPlayingAudio == rhs.isPlayingAudio
+               lhs.isPlayingAudio == rhs.isPlayingAudio &&
+               lhs.outputDeviceUID == rhs.outputDeviceUID
     }
     
     public func hash(into hasher: inout Hasher) {
@@ -79,6 +85,7 @@ public struct AudioProcess: Identifiable, Hashable, @unchecked Sendable {
         hasher.combine(volume)
         hasher.combine(isMuted)
         hasher.combine(isPlayingAudio)
+        hasher.combine(outputDeviceUID)
     }
 }
 

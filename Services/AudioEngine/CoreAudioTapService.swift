@@ -35,6 +35,19 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
     /// Menyimpan status mute per App Key
     private var appMutes: [String: Bool] = [:]
     
+    /// Menyimpan output device UID per PID dan per App Key
+    private var processOutputDevices: [pid_t: String] = [:]
+    private var appOutputDevices: [String: String] = [:]
+    
+    /// Cache mapping target AudioObjectIDs per BundleID dan PID untuk menghindari synchronous CoreAudio HAL query saat sliding
+    private var cachedAudioObjectsByBundleID: [String: [AudioObjectID]] = [:]
+    private var cachedAudioObjectsByPID: [pid_t: [AudioObjectID]] = [:]
+    private var cachedDefaultOutputDeviceUID: String = ""
+    
+    /// Debounced AppleScript work item agar tidak terjadi blocking IPC pada player legacy (Spotify/Music)
+    private var pendingAppleScriptWorkItem: DispatchWorkItem?
+    private let appleScriptQueue = DispatchQueue(label: "com.macvolumemixer.applescript", qos: .utility)
+    
     /// State thread-safe lock
     private let stateLock = NSLock()
     
@@ -118,16 +131,7 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         // Hentikan Realtime Mixer Engine
         mixerEngine.stop()
         
-        // Hancurkan semua tap yang sedang aktif
-        if #available(macOS 14.2, *) {
-            for (_, tapID) in appTaps {
-                _ = AudioHardwareDestroyProcessTap(tapID)
-            }
-        }
         appTaps.removeAll()
-        for (pid, tapID) in processTaps {
-            destroyProcessTap(tapID: tapID, for: pid)
-        }
         processTaps.removeAll()
         stateLock.unlock()
         
@@ -160,26 +164,21 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         let isMuted = (pid != nil ? processMutes[pid!] : nil) ?? appMutes[key] ?? false
         stateLock.unlock()
         
-        let targetObjects = allAudioObjectIDs(for: pid, bundleID: bundleID)
-        let defUID = getDefaultOutputDeviceUID()
+        let targetObjects = getTargetAudioObjects(for: pid, bundleID: bundleID)
+        let customDeviceUID = (pid != nil ? processOutputDevices[pid!] : nil) ?? appOutputDevices[key]
+        let targetDeviceUID = customDeviceUID ?? getCachedDefaultOutputDeviceUID()
         
-        // 1. Terapkan DSP Realtime Mixing Audio Engine (Mengatur PCM volume level 0.0 ... 1.0)
+        // 1. Terapkan DSP Realtime Mixing Audio Engine (Mengatur PCM volume level 0.0 ... 2.0 & Output Device)
         mixerEngine.setVolume(
             for: key,
             targetObjects: targetObjects,
-            defaultDeviceUID: defUID,
+            defaultDeviceUID: targetDeviceUID,
             volume: clampedVolume,
             isMuted: isMuted
         )
         
-        // 2. Terapkan penyesuaian volume aplikasi secara native jika didukung
-        adjustAppVolumeNative(pid: pid, bundleID: bundleID, appName: appName, volume: clampedVolume, isMuted: isMuted)
-        
-        if let pid = pid {
-            updatePublishedProcess(pid: pid) { process in
-                process.volume = clampedVolume
-            }
-        }
+        // 2. Debounced native adjustments (hanya untuk legacy AppleScript Spotify / Music)
+        adjustAppVolumeNativeDebounced(pid: pid, bundleID: bundleID, appName: appName, volume: clampedVolume, isMuted: isMuted)
     }
     
     public func setMute(for pid: pid_t, isMuted: Bool) {
@@ -204,26 +203,64 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         let volume = (pid != nil ? processVolumes[pid!] : nil) ?? appVolumes[key] ?? 1.0
         stateLock.unlock()
         
-        let targetObjects = allAudioObjectIDs(for: pid, bundleID: bundleID)
-        let defUID = getDefaultOutputDeviceUID()
+        let targetObjects = getTargetAudioObjects(for: pid, bundleID: bundleID)
+        let customDeviceUID = (pid != nil ? processOutputDevices[pid!] : nil) ?? appOutputDevices[key]
+        let targetDeviceUID = customDeviceUID ?? getCachedDefaultOutputDeviceUID()
         
-        // 1. Terapkan DSP Realtime Mixing Mute
+        // 1. Terapkan DSP Realtime Mixing Mute & Output Device
         mixerEngine.setVolume(
             for: key,
             targetObjects: targetObjects,
-            defaultDeviceUID: defUID,
+            defaultDeviceUID: targetDeviceUID,
             volume: volume,
             isMuted: isMuted
         )
         
-        // 2. Terapkan mute di level native aplikasi
-        adjustAppVolumeNative(pid: pid, bundleID: bundleID, appName: appName, volume: volume, isMuted: isMuted)
+        // 2. Debounced native adjustments
+        adjustAppVolumeNativeDebounced(pid: pid, bundleID: bundleID, appName: appName, volume: volume, isMuted: isMuted)
+    }
+    
+    public func setOutputDevice(for pid: pid_t, deviceUID: String?) {
+        let info = processWatcher.appInfo(for: pid)
+        setOutputDeviceInternal(pid: pid, bundleID: info.bundleID, appName: info.name, deviceUID: deviceUID)
+    }
+    
+    public func setOutputDevice(forBundleID bundleID: String, deviceUID: String?) {
+        let runningPID = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first?.processIdentifier
+        let appName = appNameFromBundleID(bundleID)
+        setOutputDeviceInternal(pid: runningPID, bundleID: bundleID, appName: appName, deviceUID: deviceUID)
+    }
+    
+    private func setOutputDeviceInternal(pid: pid_t?, bundleID: String?, appName: String?, deviceUID: String?) {
+        let key = bundleID?.lowercased() ?? (pid != nil ? "pid_\(pid!)" : "unknown")
         
+        stateLock.lock()
         if let pid = pid {
-            updatePublishedProcess(pid: pid) { process in
-                process.isMuted = isMuted
+            if let dev = deviceUID {
+                processOutputDevices[pid] = dev
+            } else {
+                processOutputDevices.removeValue(forKey: pid)
             }
         }
+        if let dev = deviceUID {
+            appOutputDevices[key] = dev
+        } else {
+            appOutputDevices.removeValue(forKey: key)
+        }
+        let volume = (pid != nil ? processVolumes[pid!] : nil) ?? appVolumes[key] ?? 1.0
+        let isMuted = (pid != nil ? processMutes[pid!] : nil) ?? appMutes[key] ?? false
+        stateLock.unlock()
+        
+        let targetObjects = getTargetAudioObjects(for: pid, bundleID: bundleID)
+        let targetDeviceUID = deviceUID ?? getCachedDefaultOutputDeviceUID()
+        
+        mixerEngine.setVolume(
+            for: key,
+            targetObjects: targetObjects,
+            defaultDeviceUID: targetDeviceUID,
+            volume: volume,
+            isMuted: isMuted
+        )
     }
     
     // MARK: - CoreAudio Process Tap (macOS 14.2+)
@@ -301,110 +338,63 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         return Array(result)
     }
     
-    /// Menginisialisasi Process Tap untuk PID tertentu
-    private func initializeProcessTapIfNeeded(for pid: pid_t) {
-        guard #available(macOS 14.2, *) else { return }
-        
+    /// Mengambil target AudioObjectID dari cache atau HAL untuk performa instan (0ms latency)
+    private func getTargetAudioObjects(for pid: pid_t?, bundleID: String?) -> [AudioObjectID] {
         stateLock.lock()
-        if processTaps[pid] != nil {
+        if let bID = bundleID?.lowercased(), let cached = cachedAudioObjectsByBundleID[bID], !cached.isEmpty {
             stateLock.unlock()
-            return
+            return cached
+        }
+        if let pid = pid, pid > 0, let cached = cachedAudioObjectsByPID[pid], !cached.isEmpty {
+            stateLock.unlock()
+            return cached
         }
         stateLock.unlock()
         
-        let targetObjects = allAudioObjectIDs(for: pid, bundleID: nil)
-        guard !targetObjects.isEmpty else { return }
+        let objs = allAudioObjectIDs(for: pid, bundleID: bundleID)
+        stateLock.lock()
+        if let bID = bundleID?.lowercased() {
+            cachedAudioObjectsByBundleID[bID] = objs
+        }
+        if let pid = pid, pid > 0 {
+            cachedAudioObjectsByPID[pid] = objs
+        }
+        stateLock.unlock()
+        return objs
+    }
+    
+    /// Mengambil UID Default Output Device dari cache
+    private func getCachedDefaultOutputDeviceUID() -> String {
+        stateLock.lock()
+        let cached = cachedDefaultOutputDeviceUID
+        stateLock.unlock()
+        if !cached.isEmpty { return cached }
+        let defUID = getDefaultOutputDeviceUID()
+        stateLock.lock()
+        cachedDefaultOutputDeviceUID = defUID
+        stateLock.unlock()
+        return defUID
+    }
+    
+    /// Mengatur volume aplikasi legacy (Spotify / Music) secara debounced agar tidak memblokir UI slider
+    private func adjustAppVolumeNativeDebounced(pid: pid_t?, bundleID: String?, appName: String?, volume: Float, isMuted: Bool) {
+        let bID = (bundleID ?? "").lowercased()
+        let name = (appName ?? "").lowercased()
         
-        let tapDescription = CATapDescription(stereoMixdownOfProcesses: targetObjects)
-        tapDescription.name = "MixerTap_\(pid)"
-        tapDescription.isPrivate = true
+        // Hanya jalankan AppleScript untuk player legacy yang tidak menggunakan CoreAudio tap langsung
+        let isLegacyPlayer = bID == "com.spotify.client" || name.contains("spotify") ||
+                             bID == "com.apple.music" || name == "music" ||
+                             bID == "org.videolan.vlc" || name.contains("vlc") ||
+                             bID == "com.apple.quicktimeplayerx" || name.contains("quicktime")
+        
+        guard isLegacyPlayer else { return }
         
         stateLock.lock()
-        let isMuted = (processMutes[pid] ?? false) || ((processVolumes[pid] ?? 1.0) == 0.0)
-        stateLock.unlock()
+        pendingAppleScriptWorkItem?.cancel()
         
-        tapDescription.muteBehavior = isMuted ? CATapMuteBehavior.muted : CATapMuteBehavior.unmuted
-        
-        var tapID: AudioObjectID = 0
-        let status = AudioHardwareCreateProcessTap(tapDescription, &tapID)
-        
-        if status == noErr && tapID != 0 {
-            stateLock.lock()
-            processTaps[pid] = tapID
-            stateLock.unlock()
-            logger.info("Berhasil membuat Process Tap untuk PID: \(pid), TapID: \(tapID)")
-        }
-    }
-    
-    /// Menghancurkan audio tap saat aplikasi ditutup atau monitoring berhenti
-    private func destroyProcessTap(tapID: AudioObjectID, for pid: pid_t) {
-        guard #available(macOS 14.2, *) else { return }
-        let status = AudioHardwareDestroyProcessTap(tapID)
-        if status == noErr {
-            logger.info("Berhasil menghancurkan TapID: \(tapID) untuk PID: \(pid)")
-        } else {
-            logger.error("Gagal menghancurkan TapID: \(tapID): \(self.formatOSStatus(status))")
-        }
-    }
-    
-    /// Memperbarui status mute Process Tap dengan menghancurkan dan membuat ulang tap
-    private func updateProcessTapMute(for pid: pid_t?, bundleID: String?, isMuted: Bool) {
-        guard #available(macOS 14.2, *) else { return }
-        
-        let key = bundleID?.lowercased() ?? (pid != nil ? "pid_\(pid!)" : "unknown")
-        
-        stateLock.lock()
-        let oldTapID = appTaps[key] ?? (pid != nil ? processTaps[pid!] : nil)
-        stateLock.unlock()
-        
-        if let tapID = oldTapID {
-            _ = AudioHardwareDestroyProcessTap(tapID)
-            stateLock.lock()
-            appTaps.removeValue(forKey: key)
-            if let pid = pid { processTaps.removeValue(forKey: pid) }
-            stateLock.unlock()
-        }
-        
-        guard isMuted else {
-            logger.info("App \(key) unmuted - hardware tap destroyed.")
-            return
-        }
-        
-        let targetObjects = allAudioObjectIDs(for: pid, bundleID: bundleID)
-        guard !targetObjects.isEmpty else {
-            logger.debug("Tidak ada target audio object untuk di-mute pada key: \(key)")
-            return
-        }
-        
-        let tapDescription = CATapDescription(stereoMixdownOfProcesses: targetObjects)
-        tapDescription.name = "MixerTap_\(key)"
-        tapDescription.isPrivate = true
-        tapDescription.muteBehavior = .muted
-        
-        var newTapID: AudioObjectID = 0
-        let status = AudioHardwareCreateProcessTap(tapDescription, &newTapID)
-        if status == noErr && newTapID != 0 {
-            stateLock.lock()
-            appTaps[key] = newTapID
-            if let pid = pid { processTaps[pid] = newTapID }
-            stateLock.unlock()
-            logger.info("Process Tap MUTED sukses untuk \(key), targets=\(targetObjects), tapID=\(newTapID)")
-        } else {
-            logger.error("Gagal membuat muted tap untuk \(key): \(self.formatOSStatus(status))")
-        }
-    }
-    
-    /// Mengatur volume aplikasi secara native melalui AppleScript / Scripting Bridge
-    private func adjustAppVolumeNative(pid: pid_t?, bundleID: String?, appName: String?, volume: Float, isMuted: Bool) {
-        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-            guard let self = self else { return }
-            let bID = (bundleID ?? "").lowercased()
-            let name = (appName ?? "").lowercased()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard self != nil else { return }
             let volPercent = isMuted ? 0 : min(100, Int(round(volume * 100)))
-            let effectiveVolume = isMuted ? 0.0 : volume
-            // HTMLMediaElement e.volume hanya menerima rentang 0.0 ... 1.0, jika > 1.0 akan throw exception
-            let jsVolume = isMuted ? 0.0 : min(1.0, max(0.0, volume))
-            
             var script: String? = nil
             
             if bID == "com.spotify.client" || name.contains("spotify") {
@@ -415,34 +405,8 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
                 let vlcVol = isMuted ? 0 : Int(round(volume * 512))
                 script = "tell application \"VLC\" to set volume \(vlcVol)"
             } else if bID == "com.apple.quicktimeplayerx" || name.contains("quicktime") {
+                let jsVolume = isMuted ? 0.0 : min(1.0, max(0.0, volume))
                 script = "tell application \"QuickTime Player\" to if (count of documents) > 0 then set volume of front document to \(jsVolume)"
-            } else if bID == "com.apple.safari" || name.contains("safari") {
-                script = """
-                tell application "Safari"
-                    if (count of windows) > 0 then
-                        try
-                            tell current tab of front window
-                                do JavaScript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(jsVolume); e.muted = \(isMuted ? "true" : "false"); });"
-                            end tell
-                        end try
-                    end if
-                end tell
-                """
-            } else if bID.contains("chrome") || bID.contains("browser") || bID.contains("brave") || bID.contains("edgemac") || bID.contains("firefox") || name.contains("chrome") {
-                let targetAppName = appName?.isEmpty == false ? appName! : "Google Chrome"
-                script = """
-                tell application "\(targetAppName)"
-                    if (count of windows) > 0 then
-                        try
-                            tell active tab of front window
-                                execute javascript "document.querySelectorAll('video, audio').forEach(e => { e.volume = \(jsVolume); e.muted = \(isMuted ? "true" : "false"); });"
-                            end tell
-                        end try
-                    end if
-                end tell
-                """
-            } else if bID.contains("whatsapp") || name.contains("whatsapp") {
-                self.updateProcessTapMute(for: pid, bundleID: bundleID, isMuted: isMuted || effectiveVolume == 0.0)
             }
             
             if let scriptSource = script {
@@ -452,6 +416,11 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
                 }
             }
         }
+        
+        pendingAppleScriptWorkItem = workItem
+        stateLock.unlock()
+        
+        appleScriptQueue.asyncAfter(deadline: .now() + .milliseconds(250), execute: workItem)
     }
     
     private func appNameFromBundleID(_ bundleID: String) -> String {
@@ -506,10 +475,10 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             let info = processWatcher.appInfo(for: item.pid)
             let bID = (info.bundleID ?? "").lowercased()
             let name = info.name.lowercased()
-            if (bID.contains("webkit") || name.contains("safari graphics and media")) && item.isRunningOutput {
+            if bID.contains("webkit") || name.contains("safari graphics and media") || bID.contains("safari") {
                 isSafariAudioActive = true
             }
-            if bID.contains("whatsapp") && item.isRunningOutput {
+            if bID.contains("whatsapp") && (item.isRunningOutput || audioProcesses.count > 0) {
                 isWhatsAppAudioActive = true
             }
         }
@@ -520,70 +489,132 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             
             // Dapatkan metadata aplikasi dari ProcessWatcher
             let info = processWatcher.appInfo(for: pid)
+            let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let bID = (info.bundleID ?? "").lowercased()
             
-            // Filter: prioritaskan aplikasi yang memiliki nama atau bundleID
+            // Strict filtering: Hanya aplikasi dengan bundleID valid, nama valid, icon ada, bukan daemon sistem, dan bukan ghost process
+            guard let rawBID = info.bundleID, !rawBID.isEmpty,
+                  !cleanName.isEmpty,
+                  !cleanName.lowercased().hasPrefix("process"),
+                  !cleanName.lowercased().contains("helper"),
+                  let icon = info.icon else {
+                continue
+            }
+            
+            let lowerBID = rawBID.lowercased()
+            if lowerBID.contains("corespeech") || lowerBID.contains("mediaremote") || lowerBID.contains("audiomxd") ||
+               lowerBID.contains("controlcenter") || lowerBID.contains("universalaccessd") || lowerBID.contains("powerchime") ||
+               lowerBID.contains("webkit") || lowerBID.contains("helper") || lowerBID.contains("xpc") ||
+               lowerBID.contains("systemstat") || lowerBID.contains("perfpower") {
+                continue
+            }
+            
             if let runningApp = NSRunningApplication(processIdentifier: pid), runningApp.activationPolicy == .regular {
                 stateLock.lock()
                 let currentVolume = processVolumes[pid] ?? 1.0
                 let currentMute = processMutes[pid] ?? false
+                let currentDeviceUID = processOutputDevices[pid] ?? appOutputDevices[lowerBID]
                 stateLock.unlock()
                 
-                let isSafari = (info.bundleID?.lowercased().contains("safari") == true || info.name.lowercased().contains("safari"))
-                let isWhatsApp = (info.bundleID?.lowercased().contains("whatsapp") == true || info.name.lowercased().contains("whatsapp"))
+                let isSafari = (bID.contains("safari") || cleanName.lowercased().contains("safari"))
+                let isWhatsApp = (bID.contains("whatsapp") || cleanName.lowercased().contains("whatsapp"))
                 let hasAudio = isRunningOutput || (isSafari && isSafariAudioActive) || (isWhatsApp && isWhatsAppAudioActive)
-                let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 let process = AudioProcess(
                     pid: pid,
-                    appName: cleanName.isEmpty ? "Process \(pid)" : cleanName,
+                    appName: cleanName,
                     bundleIdentifier: info.bundleID,
-                    icon: info.icon,
+                    icon: icon,
                     volume: currentVolume,
                     isMuted: currentMute,
-                    isPlayingAudio: hasAudio
+                    isPlayingAudio: hasAudio,
+                    outputDeviceUID: currentDeviceUID
                 )
                 detectedProcesses.append(process)
-                
-                // Siapkan tap jika belum ada
-                initializeProcessTapIfNeeded(for: pid)
             }
         }
         
-        // 2. Tambahkan aplikasi berjalan umum jika list CoreAudio sedikit (untuk UX optimal)
+        // 2. Tambahkan aplikasi berjalan reguler jika belum terdaftar
         let regularApps = processWatcher.getRegularRunningApplications()
         for app in regularApps {
             let pid = app.processIdentifier
             if !detectedProcesses.contains(where: { $0.pid == pid }) {
                 let info = processWatcher.appInfo(for: pid)
+                let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let bID = (info.bundleID ?? "").lowercased()
+                
+                guard let rawBID = info.bundleID, !rawBID.isEmpty,
+                      !cleanName.isEmpty,
+                      !cleanName.lowercased().hasPrefix("process"),
+                      !cleanName.lowercased().contains("helper"),
+                      let icon = info.icon else {
+                    continue
+                }
+                
+                let lowerBID = rawBID.lowercased()
+                if lowerBID.contains("corespeech") || lowerBID.contains("mediaremote") || lowerBID.contains("audiomxd") ||
+                   lowerBID.contains("controlcenter") || lowerBID.contains("universalaccessd") || lowerBID.contains("powerchime") ||
+                   lowerBID.contains("webkit") || lowerBID.contains("helper") || lowerBID.contains("xpc") ||
+                   lowerBID.contains("systemstat") || lowerBID.contains("perfpower") {
+                    continue
+                }
+                
                 stateLock.lock()
                 let currentVolume = processVolumes[pid] ?? 1.0
                 let currentMute = processMutes[pid] ?? false
+                let currentDeviceUID = processOutputDevices[pid] ?? appOutputDevices[lowerBID]
                 stateLock.unlock()
                 
-                let isSafari = (info.bundleID?.lowercased().contains("safari") == true || info.name.lowercased().contains("safari"))
-                let isWhatsApp = (info.bundleID?.lowercased().contains("whatsapp") == true || info.name.lowercased().contains("whatsapp"))
+                let isSafari = (bID.contains("safari") || cleanName.lowercased().contains("safari"))
+                let isWhatsApp = (bID.contains("whatsapp") || cleanName.lowercased().contains("whatsapp"))
                 let hasAudio = (isSafari && isSafariAudioActive) || (isWhatsApp && isWhatsAppAudioActive)
-                let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 let process = AudioProcess(
                     pid: pid,
-                    appName: cleanName.isEmpty ? "Process \(pid)" : cleanName,
+                    appName: cleanName,
                     bundleIdentifier: info.bundleID,
-                    icon: info.icon,
+                    icon: icon,
                     volume: currentVolume,
                     isMuted: currentMute,
-                    isPlayingAudio: hasAudio
+                    isPlayingAudio: hasAudio,
+                    outputDeviceUID: currentDeviceUID
                 )
                 detectedProcesses.append(process)
             }
         }
         
-        // Fallback untuk Xcode Preview atau jika tidak ada aplikasi
-        #if DEBUG
-        if detectedProcesses.isEmpty || ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
-            detectedProcesses = AudioProcess.mockList
+        // Pre-populasikan cache target objects untuk pencarian 0ms saat volume diubah
+        let defUID = self.getDefaultOutputDeviceUID()
+        var newCacheBundleID: [String: [AudioObjectID]] = [:]
+        var newCachePID: [pid_t: [AudioObjectID]] = [:]
+        
+        for p in detectedProcesses {
+            let targets = self.allAudioObjectIDs(for: p.pid, bundleID: p.bundleIdentifier)
+            if let bID = p.bundleIdentifier?.lowercased() {
+                newCacheBundleID[bID] = targets
+            }
+            newCachePID[p.pid] = targets
+            
+            // Sinkronkan aplikasi yang memiliki volume tersimpan != 1.0 (attenuated atau boosted), di-mute, atau output device kustom ke RealtimeMixerEngine
+            let customDev = p.outputDeviceUID
+            if abs(p.volume - 1.0) > 0.001 || p.isMuted || (customDev != nil && customDev != defUID) {
+                let key = p.bundleIdentifier?.lowercased() ?? "pid_\(p.pid)"
+                let targetDev = customDev ?? defUID
+                self.mixerEngine.setVolume(
+                    for: key,
+                    targetObjects: targets,
+                    defaultDeviceUID: targetDev,
+                    volume: p.volume,
+                    isMuted: p.isMuted
+                )
+            }
         }
-        #endif
+        
+        stateLock.lock()
+        cachedAudioObjectsByBundleID = newCacheBundleID
+        cachedAudioObjectsByPID = newCachePID
+        cachedDefaultOutputDeviceUID = defUID
+        stateLock.unlock()
         
         // Urutkan: aplikasi yang sedang bersuara di atas, lalu urut abjad
         detectedProcesses.sort {
@@ -591,22 +622,6 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
                 return $0.isPlayingAudio && !$1.isPlayingAudio
             }
             return $0.appName.localizedCaseInsensitiveCompare($1.appName) == .orderedAscending
-        }
-        
-        // Sinkronkan aplikasi yang memiliki volume tersimpan != 1.0 (attenuated atau boosted) atau di-mute ke RealtimeMixerEngine
-        let defUID = self.getDefaultOutputDeviceUID()
-        for p in detectedProcesses {
-            if abs(p.volume - 1.0) > 0.001 || p.isMuted {
-                let key = p.bundleIdentifier?.lowercased() ?? "pid_\(p.pid)"
-                let targets = self.allAudioObjectIDs(for: p.pid, bundleID: p.bundleIdentifier)
-                self.mixerEngine.setVolume(
-                    for: key,
-                    targetObjects: targets,
-                    defaultDeviceUID: defUID,
-                    volume: p.volume,
-                    isMuted: p.isMuted
-                )
-            }
         }
         
         DispatchQueue.main.async { [weak self] in

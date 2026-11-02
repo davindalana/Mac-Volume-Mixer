@@ -19,16 +19,34 @@ public final class MixerViewModel: ObservableObject {
         }
     }
     
-    /// Volume tersimpan per bundle ID
-    private var savedAppVolumes: [String: Float] {
-        get { (UserDefaults.standard.dictionary(forKey: "savedAppVolumes") as? [String: Float]) ?? [:] }
-        set { UserDefaults.standard.set(newValue, forKey: "savedAppVolumes") }
+    /// Volume dan Mute tersimpan per bundle ID (in-memory cache dengan debounced disk write)
+    private var inMemorySavedAppVolumes: [String: Float] = [:]
+    private var inMemorySavedAppMutes: [String: Bool] = [:]
+    private var inMemorySavedAppOutputDevices: [String: String] = [:]
+    private let preferencesSaveSubject = PassthroughSubject<Void, Never>()
+    
+    public var savedAppVolumes: [String: Float] {
+        get { inMemorySavedAppVolumes }
+        set {
+            inMemorySavedAppVolumes = newValue
+            preferencesSaveSubject.send()
+        }
     }
     
-    /// Mute tersimpan per bundle ID
-    private var savedAppMutes: [String: Bool] {
-        get { (UserDefaults.standard.dictionary(forKey: "savedAppMutes") as? [String: Bool]) ?? [:] }
-        set { UserDefaults.standard.set(newValue, forKey: "savedAppMutes") }
+    public var savedAppMutes: [String: Bool] {
+        get { inMemorySavedAppMutes }
+        set {
+            inMemorySavedAppMutes = newValue
+            preferencesSaveSubject.send()
+        }
+    }
+    
+    public var savedAppOutputDevices: [String: String] {
+        get { inMemorySavedAppOutputDevices }
+        set {
+            inMemorySavedAppOutputDevices = newValue
+            preferencesSaveSubject.send()
+        }
     }
     
     /// Query pencarian aplikasi
@@ -68,23 +86,28 @@ public final class MixerViewModel: ObservableObject {
         var includedBundleIDs = Set<String>()
         var includedPIDs = Set<pid_t>()
         
-        // 1. Tampilkan semua aplikasi yang di-pin
+        // 1. Tampilkan semua aplikasi yang di-pin (HANYA jika aplikasi tersebut sedang berjalan / running)
         for bundleID in pinnedAppBundleIDs {
             let lowerBID = bundleID.lowercased()
-            includedBundleIDs.insert(lowerBID)
             
             // Cari proses yang sedang berjalan dengan bundleID tersebut
             if let activeProc = processes.first(where: {
                 ($0.bundleIdentifier?.lowercased() == lowerBID) ||
                 ($0.appName.lowercased() == appNameFromBundleID(bundleID).lowercased())
             }) {
-                result.append(activeProc)
+                var proc = activeProc
+                if let savedDev = inMemorySavedAppOutputDevices[bundleID] {
+                    proc.outputDeviceUID = savedDev
+                }
+                result.append(proc)
+                includedBundleIDs.insert(lowerBID)
                 includedPIDs.insert(activeProc.pid)
             } else if let runningApp = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-                // Aplikasi sedang berjalan di sistem, gunakan PID sebenarnya jika valid
-                let pid = runningApp.processIdentifier > 0 ? runningApp.processIdentifier : pid_t(bundleID.hashValue & 0x7FFFFFFF)
-                let savedVol = savedAppVolumes[bundleID] ?? 1.0
-                let savedMute = savedAppMutes[bundleID] ?? false
+                let realProc = processes.first(where: { $0.bundleIdentifier?.lowercased() == lowerBID })
+                let pid = runningApp.processIdentifier > 0 ? runningApp.processIdentifier : (realProc?.pid ?? pid_t(bundleID.hashValue & 0x7FFFFFFF))
+                let savedVol = inMemorySavedAppVolumes[bundleID] ?? 1.0
+                let savedMute = inMemorySavedAppMutes[bundleID] ?? false
+                let savedDev = inMemorySavedAppOutputDevices[bundleID]
                 let proc = AudioProcess(
                     pid: pid,
                     appName: runningApp.localizedName ?? appNameFromBundleID(bundleID),
@@ -92,36 +115,38 @@ public final class MixerViewModel: ObservableObject {
                     icon: runningApp.icon ?? appMetadata(for: bundleID).icon,
                     volume: savedVol,
                     isMuted: savedMute,
-                    isPlayingAudio: false
+                    isPlayingAudio: realProc?.isPlayingAudio ?? false,
+                    outputDeviceUID: savedDev
                 )
                 result.append(proc)
+                includedBundleIDs.insert(lowerBID)
                 includedPIDs.insert(pid)
-            } else {
-                // Aplikasi sedang tidak berjalan, buat placeholder dengan metadata aplikasi
-                let info = appMetadata(for: bundleID)
-                let savedVol = savedAppVolumes[bundleID] ?? 1.0
-                let savedMute = savedAppMutes[bundleID] ?? false
-                let placeholder = AudioProcess(
-                    pid: pid_t(bundleID.hashValue & 0x7FFFFFFF),
-                    appName: info.name,
-                    bundleIdentifier: bundleID,
-                    icon: info.icon,
-                    volume: savedVol,
-                    isMuted: savedMute,
-                    isPlayingAudio: false
-                )
-                result.append(placeholder)
             }
+            // Catatan: Jika aplikasi yang di-pin sedang tidak berjalan, tidak dimasukkan agar mixer bersih dan optimal!
         }
         
         // 2. Tambahkan otomatis aplikasi lain yang sedang memutar audio atau yang ada di list proses
         for proc in processes {
-            let bID = (proc.bundleIdentifier ?? "").lowercased()
-            if !includedBundleIDs.contains(bID) && !includedPIDs.contains(proc.pid) {
+            guard let bID = proc.bundleIdentifier, !bID.isEmpty else { continue }
+            let lowerBID = bID.lowercased()
+            let name = proc.appName.lowercased()
+            
+            // Strict filtering: Jangan pernah tampilkan ghost "Process [pid]", helper, daemon, atau system process
+            if name.hasPrefix("process") || name.contains("helper") || name.isEmpty || proc.icon == nil {
+                continue
+            }
+            if lowerBID.contains("corespeech") || lowerBID.contains("mediaremote") || lowerBID.contains("audiomxd") ||
+               lowerBID.contains("controlcenter") || lowerBID.contains("universalaccessd") || lowerBID.contains("powerchime") ||
+               lowerBID.contains("webkit") || lowerBID.contains("helper") || lowerBID.contains("xpc") ||
+               lowerBID.contains("systemstat") || lowerBID.contains("perfpower") {
+                continue
+            }
+            
+            if !includedBundleIDs.contains(lowerBID) && !includedPIDs.contains(proc.pid) {
                 if proc.isPlayingAudio || abs(proc.volume - 1.0) > 0.001 || proc.isMuted {
                     result.append(proc)
                     includedPIDs.insert(proc.pid)
-                    if !bID.isEmpty { includedBundleIDs.insert(bID) }
+                    includedBundleIDs.insert(lowerBID)
                 }
             }
         }
@@ -154,9 +179,6 @@ public final class MixerViewModel: ObservableObject {
     private let systemPermissions: SystemPermissions
     private var cancellables = Set<AnyCancellable>()
     
-    private let volumeUpdateSubject = PassthroughSubject<(pid: pid_t, volume: Float), Never>()
-    private let masterVolumeUpdateSubject = PassthroughSubject<Float, Never>()
-    
     // MARK: - Initializer
     public init(
         audioEngine: AudioEngineProtocol = CoreAudioTapService(),
@@ -174,16 +196,29 @@ public final class MixerViewModel: ObservableObject {
             "net.whatsapp.WhatsApp"
         ]
         
+        self.inMemorySavedAppVolumes = (UserDefaults.standard.dictionary(forKey: "savedAppVolumes") as? [String: Float]) ?? [:]
+        self.inMemorySavedAppMutes = (UserDefaults.standard.dictionary(forKey: "savedAppMutes") as? [String: Bool]) ?? [:]
+        self.inMemorySavedAppOutputDevices = (UserDefaults.standard.dictionary(forKey: "savedAppOutputDevices") as? [String: String]) ?? [:]
         self.isBannerDismissed = UserDefaults.standard.bool(forKey: "hasDismissedAudioPermissionBanner")
         
         setupSubscriptions()
-        setupDebouncedSliders()
         startMonitoring()
     }
     
     // MARK: - Subscriptions & Debounce Setup
     
     private func setupSubscriptions() {
+        // Debounce penyimpanan preferensi ke UserDefaults agar disk I/O tidak memicu delay saat slider digeser
+        preferencesSaveSubject
+            .debounce(for: .milliseconds(400), scheduler: DispatchQueue.global(qos: .utility))
+            .sink { [weak self] in
+                guard let self = self else { return }
+                UserDefaults.standard.set(self.inMemorySavedAppVolumes, forKey: "savedAppVolumes")
+                UserDefaults.standard.set(self.inMemorySavedAppMutes, forKey: "savedAppMutes")
+                UserDefaults.standard.set(self.inMemorySavedAppOutputDevices, forKey: "savedAppOutputDevices")
+            }
+            .store(in: &cancellables)
+        
         audioEngine.activeProcessesPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] updatedProcesses in
@@ -224,22 +259,6 @@ public final class MixerViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private func setupDebouncedSliders() {
-        volumeUpdateSubject
-            .debounce(for: .milliseconds(40), scheduler: DispatchQueue.global(qos: .userInteractive))
-            .sink { [weak self] update in
-                self?.audioEngine.setVolume(for: update.pid, volume: update.volume)
-            }
-            .store(in: &cancellables)
-        
-        masterVolumeUpdateSubject
-            .debounce(for: .milliseconds(40), scheduler: DispatchQueue.global(qos: .userInteractive))
-            .sink { [weak self] volume in
-                self?.audioEngine.setMasterVolume(volume)
-            }
-            .store(in: &cancellables)
-    }
-    
     // MARK: - Public Actions
     
     public func startMonitoring() {
@@ -254,76 +273,67 @@ public final class MixerViewModel: ObservableObject {
         isMonitoring = false
     }
     
-    public func updateVolume(for pid: pid_t, volume: Float) {
+    public func updateVolume(for process: AudioProcess, volume: Float) {
         let clamped = max(0.0, min(2.0, volume))
+        let targetBundleID = process.bundleIdentifier
+        let pid = process.pid
         
-        var targetBundleID: String? = nil
-        var targetPID: pid_t = pid
-        
-        if let index = processes.firstIndex(where: { $0.pid == pid }) {
+        if let index = processes.firstIndex(where: { $0.pid == pid || ($0.bundleIdentifier != nil && $0.bundleIdentifier == targetBundleID) }) {
             processes[index].volume = clamped
-            targetBundleID = processes[index].bundleIdentifier
             if clamped > 0 && processes[index].isMuted {
                 processes[index].isMuted = false
                 audioEngine.setMute(for: pid, isMuted: false)
             }
         }
         
-        // Cek juga di displayProcesses untuk placeholder / pinned apps
-        if let disp = displayProcesses.first(where: { $0.pid == pid }) {
-            targetBundleID = targetBundleID ?? disp.bundleIdentifier
-        }
-        
-        // Simpan preferensi volume dan sinkronkan ke audio engine
         if let bundleID = targetBundleID {
-            var dict = savedAppVolumes
-            dict[bundleID] = clamped
-            savedAppVolumes = dict
-            
-            if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first, running.processIdentifier > 0 {
-                targetPID = running.processIdentifier
-            }
-            
+            inMemorySavedAppVolumes[bundleID] = clamped
+            preferencesSaveSubject.send()
             audioEngine.setVolume(forBundleID: bundleID, volume: clamped)
         }
         
-        if targetPID > 0 {
-            audioEngine.setVolume(for: targetPID, volume: clamped)
-            volumeUpdateSubject.send((pid: targetPID, volume: clamped))
+        if pid > 0 {
+            audioEngine.setVolume(for: pid, volume: clamped)
+        }
+    }
+    
+    public func updateVolume(for pid: pid_t, volume: Float) {
+        if let proc = displayProcesses.first(where: { $0.pid == pid }) {
+            updateVolume(for: proc, volume: volume)
+        } else {
+            let clamped = max(0.0, min(2.0, volume))
+            audioEngine.setVolume(for: pid, volume: clamped)
+        }
+    }
+    
+    public func toggleMute(for process: AudioProcess) {
+        let targetBundleID = process.bundleIdentifier
+        let pid = process.pid
+        var newMuted = !process.isMuted
+        
+        if let index = processes.firstIndex(where: { $0.pid == pid || ($0.bundleIdentifier != nil && $0.bundleIdentifier == targetBundleID) }) {
+            newMuted = !processes[index].isMuted
+            processes[index].isMuted = newMuted
+        }
+        
+        if let bundleID = targetBundleID {
+            inMemorySavedAppMutes[bundleID] = newMuted
+            preferencesSaveSubject.send()
+            audioEngine.setMute(forBundleID: bundleID, isMuted: newMuted)
+        }
+        
+        if pid > 0 {
+            audioEngine.setMute(for: pid, isMuted: newMuted)
         }
         objectWillChange.send()
     }
     
     public func toggleMute(for pid: pid_t) {
-        var targetBundleID: String? = nil
-        var targetPID: pid_t = pid
-        var newMuted: Bool = true
-        
-        if let index = processes.firstIndex(where: { $0.pid == pid }) {
-            newMuted = !processes[index].isMuted
-            processes[index].isMuted = newMuted
-            targetBundleID = processes[index].bundleIdentifier
-        } else if let disp = displayProcesses.first(where: { $0.pid == pid }) {
-            newMuted = !disp.isMuted
-            targetBundleID = disp.bundleIdentifier
+        if let proc = displayProcesses.first(where: { $0.pid == pid }) {
+            toggleMute(for: proc)
+        } else {
+            audioEngine.setMute(for: pid, isMuted: true)
         }
-        
-        if let bundleID = targetBundleID {
-            var dict = savedAppMutes
-            dict[bundleID] = newMuted
-            savedAppMutes = dict
-            
-            if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first, running.processIdentifier > 0 {
-                targetPID = running.processIdentifier
-            }
-            
-            audioEngine.setMute(forBundleID: bundleID, isMuted: newMuted)
-        }
-        
-        if targetPID > 0 {
-            audioEngine.setMute(for: targetPID, isMuted: newMuted)
-        }
-        objectWillChange.send()
     }
     
     public func updateMasterVolume(_ volume: Float) {
@@ -334,7 +344,6 @@ public final class MixerViewModel: ObservableObject {
             audioEngine.setMasterMute(false)
         }
         audioEngine.setMasterVolume(min(1.0, clamped))
-        masterVolumeUpdateSubject.send(clamped)
     }
     
     public func toggleMasterMute() {
@@ -346,6 +355,31 @@ public final class MixerViewModel: ObservableObject {
     public func selectOutputDevice(_ device: AudioDevice) {
         selectedOutputDevice = device
         audioEngine.setDefaultOutputDevice(device)
+    }
+    
+    public func setOutputDevice(for process: AudioProcess, device: AudioDevice?) {
+        let targetBundleID = process.bundleIdentifier
+        let pid = process.pid
+        let deviceUID = device?.uid
+        
+        if let index = processes.firstIndex(where: { $0.pid == pid || ($0.bundleIdentifier != nil && $0.bundleIdentifier == targetBundleID) }) {
+            processes[index].outputDeviceUID = deviceUID
+        }
+        
+        if let bundleID = targetBundleID {
+            if let devUID = deviceUID {
+                inMemorySavedAppOutputDevices[bundleID] = devUID
+            } else {
+                inMemorySavedAppOutputDevices.removeValue(forKey: bundleID)
+            }
+            preferencesSaveSubject.send()
+            audioEngine.setOutputDevice(forBundleID: bundleID, deviceUID: deviceUID)
+        }
+        
+        if pid > 0 {
+            audioEngine.setOutputDevice(for: pid, deviceUID: deviceUID)
+        }
+        objectWillChange.send()
     }
     
     public func addPinnedApp(bundleIdentifier: String) {
@@ -383,7 +417,7 @@ public final class MixerViewModel: ObservableObject {
     }
     
     public func requestPermissions() {
-        systemPermissions.openSystemPrivacySettings()
+        systemPermissions.requestPermissions()
     }
     
     public func dismissPermissionBanner() {

@@ -36,9 +36,7 @@ public struct CustomSlider: NSViewRepresentable {
         view.isMuted = isMuted
         view.accentColor = NSColor(accentColor)
         view.onValueChanged = { newVal in
-            DispatchQueue.main.async {
-                self.value = newVal
-            }
+            self.value = newVal
         }
         view.onEditingChanged = onEditingChanged
         return view
@@ -47,7 +45,9 @@ public struct CustomSlider: NSViewRepresentable {
     public func updateNSView(_ nsView: MacSliderNSView, context: Context) {
         nsView.maxValue = maxValue
         nsView.baselineValue = baselineValue
-        nsView.value = value
+        if !nsView.isCurrentlyDragging {
+            nsView.value = value
+        }
         nsView.isMuted = isMuted
         nsView.accentColor = NSColor(accentColor)
     }
@@ -94,6 +94,7 @@ public final class MacSliderNSView: NSView {
     private let knobRadius: CGFloat = 6.0
     private let trackHeight: CGFloat = 3.0
     private var isDragging: Bool = false
+    public var isCurrentlyDragging: Bool { isDragging }
     
     public override var isFlipped: Bool { true }
     

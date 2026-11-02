@@ -1,24 +1,29 @@
 import Foundation
 import CoreAudio
 import AudioToolbox
+import CoreGraphics
 import os.log
 
 /// Session DSP aktif per aplikasi / bundleID
 private final class AppTapSession {
     let key: String
     var gain: Float32
+    var targetObjects: Set<AudioObjectID>
+    var deviceUID: String
     var tapID: AudioObjectID = 0
     var aggDeviceID: AudioDeviceID = 0
     var ioProcID: AudioDeviceIOProcID? = nil
     var opaqueSelf: UnsafeMutableRawPointer? = nil
     
-    init(key: String, gain: Float32) {
+    init(key: String, gain: Float32, targetObjects: Set<AudioObjectID>, deviceUID: String) {
         self.key = key
         self.gain = gain
+        self.targetObjects = targetObjects
+        self.deviceUID = deviceUID
     }
 }
 
-// IOProc C-callback untuk DSP attenuation real-time
+// IOProc C-callback untuk DSP attenuation & amplification real-time
 private func mixerEngineIOProc(
     inDevice: AudioObjectID,
     inNow: UnsafePointer<AudioTimeStamp>,
@@ -68,7 +73,7 @@ private func mixerEngineIOProc(
 
 /// Engine mixing audio DSP real-time menggunakan AudioHardwareCreateProcessTap,
 /// CoreAudio Aggregate Device, dan callback AudioDeviceIOProc.
-/// Mengatur volume floating-point PCM secara independen per aplikasi / bundleID.
+/// Mengatur volume floating-point PCM secara independen per aplikasi / bundleID (0% - 200%).
 public final class RealtimeMixerEngine: @unchecked Sendable {
     private let logger = Logger(subsystem: "com.macvolumemixer.app", category: "RealtimeMixerEngine")
     private let lock = NSLock()
@@ -94,20 +99,33 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
         defer { lock.unlock() }
         
         let effectiveGain = isMuted ? 0.0 : max(0.0, min(2.0, Float32(volume)))
+        let targetSet = Set(targetObjects)
         
-        // 1. Jika volume tepat 1.0 (100% dan tidak dimute), tidak perlu DSP intercept - bypass native bit-perfect
-        if abs(effectiveGain - 1.0) < 0.001 {
-            if let session = sessions.removeValue(forKey: key) {
+        // 1. Jika session sudah ada
+        if let session = sessions[key] {
+            // Periksa apakah target objects atau device output berubah
+            let deviceChanged = session.deviceUID != defaultDeviceUID
+            if (!targetObjects.isEmpty && session.targetObjects != targetSet) || deviceChanged {
+                logger.info("Target objects atau target device untuk \(key) berubah (deviceChanged: \(deviceChanged)). Memperbarui audio tap session...")
                 tearDownSession(session)
-                logger.info("Session DSP untuk \(key) dihentikan (kembali ke 100% native bypass)")
+                sessions.removeValue(forKey: key)
+                createSession(
+                    key: key,
+                    targetObjects: targetObjects,
+                    defaultDeviceUID: defaultDeviceUID,
+                    initialGain: effectiveGain
+                )
+                return
             }
+            
+            // Cukup update gain secara atomik (0ms latency, zero glitch)
+            session.gain = effectiveGain
             return
         }
         
-        // 2. Jika session sudah ada, cukup update gain secara atomik tanpa restart device!
-        if let session = sessions[key] {
-            session.gain = effectiveGain
-            logger.debug("Gain session \(key) diperbarui ke \(effectiveGain)")
+        // 2. Jika belum ada session dan volume default 1.0 (serta tidak dimute) dan tidak di-route ke device kustom, biarkan native pass-through
+        // Namun jika defaultDeviceUID berbeda atau caller meminta session aktif, buat session
+        if abs(effectiveGain - 1.0) < 0.001 && !isMuted {
             return
         }
         
@@ -133,7 +151,14 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
         let tapDesc = CATapDescription(stereoMixdownOfProcesses: targetObjects)
         tapDesc.name = "MixerTap_\(key)"
         tapDesc.isPrivate = true
-        tapDesc.muteBehavior = .muted // Mute direct hardware output
+        
+        let hasCapture = CGPreflightScreenCaptureAccess()
+        // Kritis: Hanya set .muted jika Screen & Audio Recording permission aktif.
+        // Jika belum aktif, gunakan .unmuted agar suara aplikasi tidak hilang.
+        tapDesc.muteBehavior = hasCapture ? .muted : .unmuted
+        if !hasCapture {
+            logger.warning("ScreenCapture access belum aktif untuk \(key). Menggunakan .unmuted untuk keamanan audio.")
+        }
         
         var tapID: AudioObjectID = 0
         let tapStatus = AudioHardwareCreateProcessTap(tapDesc, &tapID)
@@ -179,7 +204,7 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
             return
         }
         
-        let session = AppTapSession(key: key, gain: initialGain)
+        let session = AppTapSession(key: key, gain: initialGain, targetObjects: Set(targetObjects), deviceUID: defaultDeviceUID)
         session.tapID = tapID
         session.aggDeviceID = aggDeviceID
         
@@ -205,7 +230,7 @@ public final class RealtimeMixerEngine: @unchecked Sendable {
         }
         
         sessions[key] = session
-        logger.info("DSP Audio Session aktif untuk \(key), gain=\(initialGain), targetObjects=\(targetObjects)")
+        logger.info("DSP Audio Session aktif untuk \(key), gain=\(initialGain), targets=\(targetObjects)")
     }
     
     private func tearDownSession(_ session: AppTapSession) {

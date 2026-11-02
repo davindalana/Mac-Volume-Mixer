@@ -13,8 +13,8 @@ public struct PopoverView: View {
     
     public var body: some View {
         VStack(spacing: 4) {
-            // MARK: - Optional Discreet Permission Notice
-            if viewModel.permissionStatus != .authorized && !viewModel.isBannerDismissed {
+            // MARK: - Required Permission Notice
+            if viewModel.permissionStatus != .authorized {
                 discreetPermissionBanner
                     .padding(.horizontal, 8)
                     .padding(.top, 6)
@@ -29,11 +29,15 @@ public struct PopoverView: View {
                 ForEach(viewModel.displayProcesses) { process in
                     AppVolumeRowView(
                         process: process,
+                        availableDevices: viewModel.outputDevices,
                         onVolumeChange: { newVolume in
-                            viewModel.updateVolume(for: process.pid, volume: newVolume)
+                            viewModel.updateVolume(for: process, volume: newVolume)
                         },
                         onMuteToggle: {
-                            viewModel.toggleMute(for: process.pid)
+                            viewModel.toggleMute(for: process)
+                        },
+                        onOutputDeviceChange: { selectedDev in
+                            viewModel.setOutputDevice(for: process, device: selectedDev)
                         },
                         onRemove: (viewModel.pinnedAppBundleIDs.contains(process.bundleIdentifier ?? "")) ? {
                             if let bID = process.bundleIdentifier {
@@ -212,41 +216,38 @@ public struct PopoverView: View {
         .padding(.vertical, 3.5)
     }
     
-    // MARK: - Discreet Permission Banner (can be permanently dismissed)
+    // MARK: - Discreet Permission Banner
     private var discreetPermissionBanner: some View {
         HStack(spacing: 6) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 10))
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
                 .foregroundColor(Color.orange)
             
-            Text("Audio recording permission recommended.")
-                .font(.system(size: 10))
-                .foregroundColor(Color(white: 0.8))
+            Text("Izin Audio Sistem diperlukan untuk kontrol volume.")
+                .font(.system(size: 10.5))
+                .foregroundColor(Color(white: 0.9))
             
             Spacer()
             
-            Button("Settings") {
+            Button("Aktifkan Izin") {
                 viewModel.requestPermissions()
+            }
+            .font(.system(size: 9.5, weight: .semibold))
+            .buttonStyle(.borderedProminent)
+            .tint(Color.orange)
+            .controlSize(.mini)
+            
+            Button("Restart") {
+                viewModel.restartApp()
             }
             .font(.system(size: 9.5, weight: .medium))
             .buttonStyle(.bordered)
             .controlSize(.mini)
-            
-            Button(action: {
-                viewModel.dismissPermissionBanner()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(Color(white: 0.6))
-                    .padding(2)
-            }
-            .buttonStyle(.plain)
-            .help("Dismiss permanently")
         }
-        .padding(5)
+        .padding(6)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.orange.opacity(0.12))
+                .fill(Color.orange.opacity(0.18))
         )
     }
 }

@@ -1,11 +1,13 @@
 import SwiftUI
 
 /// Baris kontrol volume individual per aplikasi sesuai screenshot (SoundSource style).
-/// Layout: [App Icon 22x22] [App Name] [Spacer] [Mute Button (Speaker Slash)] [CustomSlider (Orange / White)]
+/// Layout: [App Icon 22x22] [App Name] [Output Device Menu] [Spacer] [Mute Button] [CustomSlider] [Percentage] [Remove Button]
 public struct AppVolumeRowView: View {
     public let process: AudioProcess
+    public let availableDevices: [AudioDevice]
     public let onVolumeChange: (Float) -> Void
     public let onMuteToggle: () -> Void
+    public let onOutputDeviceChange: ((AudioDevice?) -> Void)?
     public let onRemove: (() -> Void)?
     
     @State private var localVolume: Float
@@ -13,13 +15,17 @@ public struct AppVolumeRowView: View {
     
     public init(
         process: AudioProcess,
+        availableDevices: [AudioDevice] = [],
         onVolumeChange: @escaping (Float) -> Void,
         onMuteToggle: @escaping () -> Void,
+        onOutputDeviceChange: ((AudioDevice?) -> Void)? = nil,
         onRemove: (() -> Void)? = nil
     ) {
         self.process = process
+        self.availableDevices = availableDevices
         self.onVolumeChange = onVolumeChange
         self.onMuteToggle = onMuteToggle
+        self.onOutputDeviceChange = onOutputDeviceChange
         self.onRemove = onRemove
         self._localVolume = State(initialValue: process.volume)
     }
@@ -28,6 +34,13 @@ public struct AppVolumeRowView: View {
         process.appName
             .replacingOccurrences(of: "\u{200E}", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private var currentDevice: AudioDevice? {
+        if let uid = process.outputDeviceUID {
+            return availableDevices.first(where: { $0.uid == uid })
+        }
+        return nil
     }
     
     public var body: some View {
@@ -46,12 +59,59 @@ public struct AppVolumeRowView: View {
             }
             .frame(width: 22, height: 22)
             
-            // MARK: - 2. App Name
-            Text(cleanAppName)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundColor(process.isMuted ? Color(white: 0.5) : Color(white: 0.95))
-                .lineLimit(1)
-                .truncationMode(.tail)
+            // MARK: - 2. App Name & Output Device Indicator
+            VStack(alignment: .leading, spacing: 1) {
+                Text(cleanAppName)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(process.isMuted ? Color(white: 0.5) : Color(white: 0.95))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                
+                // Output device picker / indicator
+                if let onOutputDeviceChange = onOutputDeviceChange, !availableDevices.isEmpty {
+                    Menu {
+                        Button(action: {
+                            onOutputDeviceChange(nil)
+                        }) {
+                            HStack {
+                                Text("System Default Output")
+                                if process.outputDeviceUID == nil {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        ForEach(availableDevices) { device in
+                            Button(action: {
+                                onOutputDeviceChange(device)
+                            }) {
+                                HStack {
+                                    Text(device.name)
+                                    if device.uid == process.outputDeviceUID {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: currentDevice?.systemIconName ?? "speaker.wave.2")
+                                .font(.system(size: 8))
+                            Text(currentDevice?.name ?? "Default Output")
+                                .font(.system(size: 9.5))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 7))
+                        }
+                        .foregroundColor(process.outputDeviceUID != nil ? Color.orange : Color(white: 0.5))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+            }
             
             Spacer(minLength: 6)
             

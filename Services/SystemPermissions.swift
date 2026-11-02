@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import CoreGraphics
 import AppKit
+import ScreenCaptureKit
 
 /// Layanan untuk mengecek dan meminta izin akses sistem yang diperlukan untuk audio tap di macOS 14+.
 public final class SystemPermissions: ObservableObject {
@@ -13,17 +14,17 @@ public final class SystemPermissions: ObservableObject {
     
     @Published public private(set) var audioCaptureStatus: PermissionStatus = .notDetermined
     @Published public private(set) var microphoneStatus: PermissionStatus = .notDetermined
-    @Published public var isBannerDismissed: Bool {
-        didSet {
-            UserDefaults.standard.set(isBannerDismissed, forKey: "hasDismissedAudioPermissionBanner")
-        }
-    }
+    @Published public var isBannerDismissed: Bool = false
     
     public static let shared = SystemPermissions()
     
     public init() {
-        self.isBannerDismissed = UserDefaults.standard.bool(forKey: "hasDismissedAudioPermissionBanner")
         refreshStatus()
+        
+        // Pemicu registrasi prompt izin sistem Screen & Audio Capture otomatis jika belum aktif
+        if !CGPreflightScreenCaptureAccess() {
+            requestAudioCapturePermission()
+        }
         
         // Auto refresh saat pengguna kembali dari System Settings
         NotificationCenter.default.addObserver(
@@ -40,8 +41,10 @@ public final class SystemPermissions: ObservableObject {
         // Cek izin Screen & Audio Capture (System Audio Recording di macOS Sonoma/Sequoia)
         if CGPreflightScreenCaptureAccess() {
             audioCaptureStatus = .authorized
+            isBannerDismissed = true
         } else {
             audioCaptureStatus = .denied
+            isBannerDismissed = false
         }
         
         // Cek izin Microphone (AVCaptureDevice)
@@ -57,12 +60,21 @@ public final class SystemPermissions: ObservableObject {
         }
     }
     
-    /// Meminta izin audio capture (akan memicu prompt sistem macOS jika belum pernah diminta)
+    /// Meminta izin audio capture (memicu prompt sistem macOS dan mendaftarkan aplikasi di Privacy & Security)
     public func requestAudioCapturePermission() {
         if !CGPreflightScreenCaptureAccess() {
             CGRequestScreenCaptureAccess()
+            Task {
+                _ = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            }
         }
         refreshStatus()
+    }
+    
+    /// Meminta izin audio capture dan langsung membuka halaman System Settings
+    public func requestPermissions() {
+        requestAudioCapturePermission()
+        openSystemPrivacySettings()
     }
     
     /// Meminta izin akses microphone

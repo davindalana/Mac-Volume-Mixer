@@ -18,6 +18,8 @@ let package = Package(
             path: ".",
             exclude: [
                 "App/Info.plist",
+                "App/designated_requirement.txt",
+                "MacVolumeMixer.app",
                 "README.md",
                 "bundle_app.sh"
             ],

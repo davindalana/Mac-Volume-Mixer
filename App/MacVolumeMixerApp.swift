@@ -1,7 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// Delegate untuk memastikan hanya ada satu instance MacVolumeMixer yang berjalan.
+/// Delegate untuk memastikan hanya ada satu instance MacVolumeMixer yang berjalan
+/// dan memicu permintaan izin yang diperlukan sejak awal.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let currentPID = ProcessInfo.processInfo.processIdentifier
@@ -14,6 +15,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
         }
+        
+        // Pemicu registrasi prompt izin sistem Screen & Audio Capture
+        SystemPermissions.shared.requestAudioCapturePermission()
     }
 }
 

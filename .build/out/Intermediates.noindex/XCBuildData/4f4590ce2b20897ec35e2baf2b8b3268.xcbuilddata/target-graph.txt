@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'MacVolumeMixer-product' in project 'MacVolumeMixer' (no dependencies)

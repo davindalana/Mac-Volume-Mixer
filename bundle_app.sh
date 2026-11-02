@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Script untuk membungkus MacVolumeMixer menjadi bundle macOS App (.app) resmi
-# agar izin Screen & Audio Recording dapat diberikan secara permanen oleh macOS.
+# dengan Designated Requirement permanen agar izin Screen & Audio Recording dapat
+# diberikan secara permanen oleh macOS tanpa ter-reset saat rebuild.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="MacVolumeMixer"
@@ -27,15 +28,22 @@ chmod +x "$MACOS_DIR/$APP_NAME"
 # Salin Info.plist
 cp "$SCRIPT_DIR/App/Info.plist" "$CONTENTS_DIR/Info.plist"
 
-# Codesign ad-hoc agar macOS mengenali binary dan bundle ID-nya di System Settings
-echo "🔏 Menandatangani aplikasi (ad-hoc codesign)..."
-codesign --force --deep --sign - "$APP_BUNDLE"
+# Pastikan designated requirement file tersedia
+REQ_FILE="$SCRIPT_DIR/App/designated_requirement.txt"
+if [ ! -f "$REQ_FILE" ]; then
+    echo 'designated => identifier "com.macvolumemixer.app"' > "$REQ_FILE"
+fi
 
-# Pindahkan / buat shortcut ke ~/Applications jika diinginkan
+# Codesign dengan Designated Requirement permanen
+echo "🔏 Menandatangani aplikasi dengan designated requirement permanen..."
+codesign --force --deep --identifier "com.macvolumemixer.app" -r "$REQ_FILE" --sign - "$APP_BUNDLE"
+
+# Pindahkan / buat shortcut ke ~/Applications
 USER_APPS="$HOME/Applications"
 mkdir -p "$USER_APPS"
 rm -rf "$USER_APPS/$APP_NAME.app"
 cp -R "$APP_BUNDLE" "$USER_APPS/$APP_NAME.app"
 
 echo "✅ Berhasil! $APP_NAME.app telah terpasang di: $USER_APPS/$APP_NAME.app"
-echo "👉 Anda dapat menjalankannya dengan: open $USER_APPS/$APP_NAME.app"
+echo "👉 Designated requirement:"
+codesign -d -r- "$USER_APPS/$APP_NAME.app"
