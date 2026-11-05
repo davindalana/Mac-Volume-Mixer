@@ -20,8 +20,6 @@ let package = Package(
                 "App/Info.plist",
                 "App/designated_requirement.txt",
                 "App/AppIcon.icns",
-                "App/generate_icon.swift",
-                "MacVolumeMixer.app",
                 "README.md",
                 "bundle_app.sh"
             ],
@@ -37,7 +35,6 @@ let package = Package(
                 "Services/SystemPermissions.swift",
                 "Views/MenuBar/PopoverView.swift",
                 "Views/MenuBar/AppVolumeRowView.swift",
-                "Views/MenuBar/MasterVolumeView.swift",
                 "Views/Components/CustomSlider.swift",
                 "Views/Components/AppIconView.swift"
             ]

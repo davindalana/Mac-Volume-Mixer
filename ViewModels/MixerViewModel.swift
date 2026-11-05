@@ -49,9 +49,6 @@ public final class MixerViewModel: ObservableObject {
         }
     }
     
-    /// Query pencarian aplikasi
-    @Published public var searchQuery: String = ""
-    
     /// Daftar perangkat output audio yang terpasang
     @Published public private(set) var outputDevices: [AudioDevice] = []
     
@@ -148,14 +145,6 @@ public final class MixerViewModel: ObservableObject {
                     includedPIDs.insert(proc.pid)
                     includedBundleIDs.insert(lowerBID)
                 }
-            }
-        }
-        
-        // Filter jika user mengetik pencarian
-        if !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return result.filter {
-                $0.appName.localizedCaseInsensitiveContains(searchQuery) ||
-                ($0.bundleIdentifier?.localizedCaseInsensitiveContains(searchQuery) ?? false)
             }
         }
         

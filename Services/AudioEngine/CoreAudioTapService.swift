@@ -17,12 +17,6 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
     /// Real-time DSP mixer engine untuk mixing stream audio per proses
     private let mixerEngine = RealtimeMixerEngine()
     
-    /// Dictionary menyimpan AudioObjectID Tap per Process ID (PID)
-    private var processTaps: [pid_t: AudioObjectID] = [:]
-    
-    /// Dictionary menyimpan AudioObjectID Tap per App Key (BundleID)
-    private var appTaps: [String: AudioObjectID] = [:]
-    
     /// Menyimpan gain / volume per PID (0.0 ... 1.0)
     private var processVolumes: [pid_t: Float] = [:]
     
@@ -130,9 +124,6 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         
         // Hentikan Realtime Mixer Engine
         mixerEngine.stop()
-        
-        appTaps.removeAll()
-        processTaps.removeAll()
         stateLock.unlock()
         
         unregisterSystemAudioListeners()
@@ -483,53 +474,53 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             }
         }
         
-        for item in audioProcesses {
-            let pid = item.pid
-            let isRunningOutput = item.isRunningOutput
-            
-            // Dapatkan metadata aplikasi dari ProcessWatcher
-            let info = processWatcher.appInfo(for: pid)
+        // Helper untuk membuat AudioProcess yang telah tervalidasi
+        let buildProcess: (pid_t, Bool) -> AudioProcess? = { [weak self] pid, isRunningOutput in
+            guard let self = self else { return nil }
+            let info = self.processWatcher.appInfo(for: pid)
             let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let bID = (info.bundleID ?? "").lowercased()
-            
-            // Strict filtering: Hanya aplikasi dengan bundleID valid, nama valid, icon ada, bukan daemon sistem, dan bukan ghost process
             guard let rawBID = info.bundleID, !rawBID.isEmpty,
                   !cleanName.isEmpty,
                   !cleanName.lowercased().hasPrefix("process"),
                   !cleanName.lowercased().contains("helper"),
                   let icon = info.icon else {
-                continue
+                return nil
             }
             
             let lowerBID = rawBID.lowercased()
-            if lowerBID.contains("corespeech") || lowerBID.contains("mediaremote") || lowerBID.contains("audiomxd") ||
-               lowerBID.contains("controlcenter") || lowerBID.contains("universalaccessd") || lowerBID.contains("powerchime") ||
-               lowerBID.contains("webkit") || lowerBID.contains("helper") || lowerBID.contains("xpc") ||
-               lowerBID.contains("systemstat") || lowerBID.contains("perfpower") {
-                continue
+            let excludedKeywords = ["corespeech", "mediaremote", "audiomxd", "controlcenter", "universalaccessd", "powerchime", "webkit", "helper", "xpc", "systemstat", "perfpower"]
+            if excludedKeywords.contains(where: { lowerBID.contains($0) }) {
+                return nil
             }
             
-            if let runningApp = NSRunningApplication(processIdentifier: pid), runningApp.activationPolicy == .regular {
-                stateLock.lock()
-                let currentVolume = processVolumes[pid] ?? 1.0
-                let currentMute = processMutes[pid] ?? false
-                let currentDeviceUID = processOutputDevices[pid] ?? appOutputDevices[lowerBID]
-                stateLock.unlock()
-                
-                let isSafari = (bID.contains("safari") || cleanName.lowercased().contains("safari"))
-                let isWhatsApp = (bID.contains("whatsapp") || cleanName.lowercased().contains("whatsapp"))
-                let hasAudio = isRunningOutput || (isSafari && isSafariAudioActive) || (isWhatsApp && isWhatsAppAudioActive)
-                
-                let process = AudioProcess(
-                    pid: pid,
-                    appName: cleanName,
-                    bundleIdentifier: info.bundleID,
-                    icon: icon,
-                    volume: currentVolume,
-                    isMuted: currentMute,
-                    isPlayingAudio: hasAudio,
-                    outputDeviceUID: currentDeviceUID
-                )
+            if let runningApp = NSRunningApplication(processIdentifier: pid), runningApp.activationPolicy != .regular {
+                return nil
+            }
+            
+            self.stateLock.lock()
+            let currentVolume = self.processVolumes[pid] ?? 1.0
+            let currentMute = self.processMutes[pid] ?? false
+            let currentDeviceUID = self.processOutputDevices[pid] ?? self.appOutputDevices[lowerBID]
+            self.stateLock.unlock()
+            
+            let isSafari = lowerBID.contains("safari") || cleanName.lowercased().contains("safari")
+            let isWhatsApp = lowerBID.contains("whatsapp") || cleanName.lowercased().contains("whatsapp")
+            let hasAudio = isRunningOutput || (isSafari && isSafariAudioActive) || (isWhatsApp && isWhatsAppAudioActive)
+            
+            return AudioProcess(
+                pid: pid,
+                appName: cleanName,
+                bundleIdentifier: info.bundleID,
+                icon: icon,
+                volume: currentVolume,
+                isMuted: currentMute,
+                isPlayingAudio: hasAudio,
+                outputDeviceUID: currentDeviceUID
+            )
+        }
+        
+        for item in audioProcesses {
+            if let process = buildProcess(item.pid, item.isRunningOutput) {
                 detectedProcesses.append(process)
             }
         }
@@ -539,47 +530,9 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         for app in regularApps {
             let pid = app.processIdentifier
             if !detectedProcesses.contains(where: { $0.pid == pid }) {
-                let info = processWatcher.appInfo(for: pid)
-                let cleanName = info.name.replacingOccurrences(of: "\u{200E}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                let bID = (info.bundleID ?? "").lowercased()
-                
-                guard let rawBID = info.bundleID, !rawBID.isEmpty,
-                      !cleanName.isEmpty,
-                      !cleanName.lowercased().hasPrefix("process"),
-                      !cleanName.lowercased().contains("helper"),
-                      let icon = info.icon else {
-                    continue
+                if let process = buildProcess(pid, false) {
+                    detectedProcesses.append(process)
                 }
-                
-                let lowerBID = rawBID.lowercased()
-                if lowerBID.contains("corespeech") || lowerBID.contains("mediaremote") || lowerBID.contains("audiomxd") ||
-                   lowerBID.contains("controlcenter") || lowerBID.contains("universalaccessd") || lowerBID.contains("powerchime") ||
-                   lowerBID.contains("webkit") || lowerBID.contains("helper") || lowerBID.contains("xpc") ||
-                   lowerBID.contains("systemstat") || lowerBID.contains("perfpower") {
-                    continue
-                }
-                
-                stateLock.lock()
-                let currentVolume = processVolumes[pid] ?? 1.0
-                let currentMute = processMutes[pid] ?? false
-                let currentDeviceUID = processOutputDevices[pid] ?? appOutputDevices[lowerBID]
-                stateLock.unlock()
-                
-                let isSafari = (bID.contains("safari") || cleanName.lowercased().contains("safari"))
-                let isWhatsApp = (bID.contains("whatsapp") || cleanName.lowercased().contains("whatsapp"))
-                let hasAudio = (isSafari && isSafariAudioActive) || (isWhatsApp && isWhatsAppAudioActive)
-                
-                let process = AudioProcess(
-                    pid: pid,
-                    appName: cleanName,
-                    bundleIdentifier: info.bundleID,
-                    icon: icon,
-                    volume: currentVolume,
-                    isMuted: currentMute,
-                    isPlayingAudio: hasAudio,
-                    outputDeviceUID: currentDeviceUID
-                )
-                detectedProcesses.append(process)
             }
         }
         
@@ -954,16 +907,6 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
         }
     }
     
-    private func updatePublishedProcess(pid: pid_t, modifier: (inout AudioProcess) -> Void) {
-        var current = activeProcessesSubject.value
-        if let idx = current.firstIndex(where: { $0.pid == pid }) {
-            modifier(&current[idx])
-            DispatchQueue.main.async { [weak self] in
-                self?.activeProcessesSubject.send(current)
-            }
-        }
-    }
-    
     // MARK: - CoreAudio Hardware Listeners
     
     private func registerSystemAudioListeners() {
@@ -1006,20 +949,5 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
             )
         }
         propertyListenerBlocks.removeAll()
-    }
-    
-    private func formatOSStatus(_ status: OSStatus) -> String {
-        let n = Int(status)
-        let chars: [CChar] = [
-            CChar((n >> 24) & 0xFF),
-            CChar((n >> 16) & 0xFF),
-            CChar((n >> 8) & 0xFF),
-            CChar(n & 0xFF),
-            0
-        ]
-        if chars.allSatisfy({ $0 >= 32 && $0 <= 126 }) {
-            return String(cString: chars)
-        }
-        return "\(status)"
     }
 }

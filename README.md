@@ -12,26 +12,27 @@ MacVolumeMixer lives in the macOS Menu Bar (`MenuBarExtra` with `.window` style)
 MacVolumeMixer/
 ├── App/
 │   ├── MacVolumeMixerApp.swift        # Application entry point (MenuBarExtra .window)
+│   ├── AppIcon.icns                   # Official macOS Retina application icon
 │   └── Info.plist                     # LSUIElement = true (Menu Bar only agent)
 ├── Models/
-│   ├── AudioProcess.swift             # Process model (PID, bundleID, icon, volume, isMuted)
+│   ├── AudioProcess.swift             # Process model (PID, bundleID, icon, volume, outputDeviceUID)
 │   └── AudioDevice.swift              # Output device model (Internal speakers, headphones, etc.)
 ├── ViewModels/
-│   └── MixerViewModel.swift           # Observable state, UI binding, 50ms debounced sliders
+│   └── MixerViewModel.swift           # Observable state, UI binding, debounced persistence
 ├── Services/
 │   ├── AudioEngine/
 │   │   ├── AudioEngineProtocol.swift  # Audio driver / tap interface contract
 │   │   ├── CoreAudioTapService.swift  # CoreAudio Process Tap (macOS 14.2+) implementation
+│   │   ├── RealtimeMixerEngine.swift  # Real-time DSP mixer & audio device routing
 │   │   └── ProcessWatcher.swift       # Lifecycle watcher via NSWorkspace & metadata cache
 │   └── SystemPermissions.swift        # Screen & Audio Capture permissions checker
 └── Views/
     ├── MenuBar/
-    │   ├── PopoverView.swift          # Main menu bar popover container
-    │   ├── AppVolumeRowView.swift     # Individual application volume slider row
-    │   └── MasterVolumeView.swift     # Master volume slider & output device selector
+    │   ├── PopoverView.swift          # Main menu bar popover container & system volume row
+    │   └── AppVolumeRowView.swift     # Individual application volume slider & device picker row
     └── Components/
-        ├── CustomSlider.swift         # Modern macOS custom gradient slider
-        └── AppIconView.swift          # App icon thumbnail with rounded border & shadow
+        ├── CustomSlider.swift         # Modern macOS custom slider with tick marks & snap
+        └── AppIconView.swift          # App icon thumbnail with rounded border & indicator
 ```
 
 ---
