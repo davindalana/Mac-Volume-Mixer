@@ -19,6 +19,8 @@ let package = Package(
             exclude: [
                 "App/Info.plist",
                 "App/designated_requirement.txt",
+                "App/AppIcon.icns",
+                "App/generate_icon.swift",
                 "MacVolumeMixer.app",
                 "README.md",
                 "bundle_app.sh"

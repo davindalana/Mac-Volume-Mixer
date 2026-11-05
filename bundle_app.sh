@@ -28,6 +28,11 @@ chmod +x "$MACOS_DIR/$APP_NAME"
 # Salin Info.plist
 cp "$SCRIPT_DIR/App/Info.plist" "$CONTENTS_DIR/Info.plist"
 
+# Salin AppIcon.icns ke Resources
+if [ -f "$SCRIPT_DIR/App/AppIcon.icns" ]; then
+    cp "$SCRIPT_DIR/App/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+fi
+
 # Pastikan designated requirement file tersedia
 REQ_FILE="$SCRIPT_DIR/App/designated_requirement.txt"
 if [ ! -f "$REQ_FILE" ]; then

@@ -22,7 +22,14 @@ public struct PopoverView: View {
             }
             
             // MARK: - Header Title / Status Bar
-            HStack {
+            HStack(spacing: 7) {
+                if let appIcon = NSImage(named: NSImage.applicationIconName) {
+                    Image(nsImage: appIcon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 17, height: 17)
+                }
+                
                 Text("Sound")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
