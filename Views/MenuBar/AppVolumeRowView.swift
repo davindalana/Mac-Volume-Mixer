@@ -116,10 +116,9 @@ public struct AppVolumeRowView: View {
                         )
                     }
                     .menuStyle(.borderlessButton)
-                    .fixedSize()
                 }
             }
-            .frame(minWidth: 80, alignment: .leading)
+            .frame(width: 108, alignment: .leading)
             
             Spacer(minLength: 4)
             
@@ -152,7 +151,7 @@ public struct AppVolumeRowView: View {
                 isMuted: process.isMuted,
                 accentColor: Color.accentColor
             )
-            .frame(width: 100)
+            .frame(width: 100, height: 18)
             
             // MARK: - 5. Percentage Label (e.g. 100%, 150%, 200%)
             Text("\(Int(round(localVolume * 100)))%")
@@ -160,19 +159,23 @@ public struct AppVolumeRowView: View {
                 .foregroundColor(process.isMuted ? Color.secondary.opacity(0.5) : (localVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
             
-            // MARK: - 6. Optional Remove Button (16pt)
-            if let onRemove = onRemove, isHovered {
-                Button(action: onRemove) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color.secondary.opacity(0.65))
-                        .frame(width: 16, height: 16)
+            // MARK: - 6. Optional Remove Button (14pt)
+            Group {
+                if let onRemove = onRemove, isHovered {
+                    Button(action: onRemove) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 10.5))
+                            .foregroundColor(Color.secondary.opacity(0.7))
+                            .frame(width: 14, height: 14)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Remove from Mixer")
+                } else {
+                    Color.clear
+                        .frame(width: 14, height: 14)
                 }
-                .buttonStyle(.plain)
-                .help("Remove from Mixer")
-            } else {
-                Spacer().frame(width: 16)
             }
+            .frame(width: 14, height: 14)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 5)

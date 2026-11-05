@@ -35,6 +35,44 @@ public struct PopoverView: View {
                     .foregroundColor(.primary)
                 
                 Spacer()
+                
+                // Master Output Device Menu (Control Center style)
+                Menu {
+                    Section("Output Device") {
+                        ForEach(viewModel.outputDevices) { device in
+                            Button(action: {
+                                viewModel.selectOutputDevice(device)
+                            }) {
+                                HStack {
+                                    Text(device.name)
+                                    if device.id == viewModel.selectedOutputDevice?.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2.fill")
+                            .font(.system(size: 9.5))
+                        Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7))
+                            .opacity(0.6)
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.primary.opacity(0.05))
+                    )
+                }
+                .menuStyle(.borderlessButton)
             }
             .padding(.horizontal, 12)
             .padding(.top, 10)
@@ -194,20 +232,20 @@ public struct PopoverView: View {
                             .font(.system(size: 10.5, weight: .medium))
                     }
                     .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
                     .background(
                         RoundedRectangle(cornerRadius: 4.5, style: .continuous)
                             .fill(Color.primary.opacity(0.04))
                     )
                 }
                 .menuStyle(.borderlessButton)
-                .fixedSize()
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.top, 4)
+            .padding(.bottom, 10)
         }
-        .frame(width: 360)
+        .frame(width: 375)
         .background(
             ZStack {
                 Rectangle().fill(Material.ultraThin)
@@ -277,9 +315,8 @@ public struct PopoverView: View {
                     )
                 }
                 .menuStyle(.borderlessButton)
-                .fixedSize()
             }
-            .frame(minWidth: 80, alignment: .leading)
+            .frame(width: 108, alignment: .leading)
             
             Spacer(minLength: 4)
             
@@ -311,7 +348,7 @@ public struct PopoverView: View {
                 isMuted: viewModel.isMasterMuted,
                 accentColor: Color.accentColor
             )
-            .frame(width: 100)
+            .frame(width: 100, height: 18)
             
             // Percentage Label
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
@@ -320,7 +357,8 @@ public struct PopoverView: View {
                 .frame(width: 34, alignment: .trailing)
             
             // Placeholder alignment spacing matching remove button
-            Spacer().frame(width: 16)
+            Color.clear
+                .frame(width: 14, height: 14)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 5)

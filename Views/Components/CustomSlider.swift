@@ -99,7 +99,7 @@ public final class MacSliderNSView: NSView {
     public override var isFlipped: Bool { true }
     
     public override var intrinsicContentSize: NSSize {
-        return NSSize(width: 100, height: 16)
+        return NSSize(width: 100, height: 18)
     }
     
     public override init(frame frameRect: NSRect) {
