@@ -6,6 +6,10 @@ import SwiftUI
 public struct PopoverView: View {
     @ObservedObject public var viewModel: MixerViewModel
     @State private var isSpinningRefresh: Bool = false
+    @State private var isShowingSettingsPopover: Bool = false
+    @State private var isShowingAddAppPopover: Bool = false
+    @State private var isShowingMasterDevicePopover: Bool = false
+    @State private var isShowingSystemRowDevicePopover: Bool = false
     
     public init(viewModel: MixerViewModel) {
         self.viewModel = viewModel
@@ -29,33 +33,20 @@ public struct PopoverView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 18, height: 18)
                         .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
-                        .help("Mac Volume Mixer")
+                        .instantTooltip("Mac Volume Mixer", edge: .bottom)
                 }
                 
                 Text("Sound")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
-                    .help("Kontrol Volume macOS")
+                    .instantTooltip("Kontrol Suara macOS", edge: .bottom)
                 
                 Spacer()
                 
-                // Master Output Device Capsule (Control Center Style)
-                Menu {
-                    Section("Perangkat Output Utama") {
-                        ForEach(viewModel.outputDevices) { device in
-                            Button(action: {
-                                viewModel.selectOutputDevice(device)
-                            }) {
-                                HStack {
-                                    Text(device.name)
-                                    if device.id == viewModel.selectedOutputDevice?.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } label: {
+                // Master Output Device Capsule (Control Center Style with Animated Popover)
+                Button(action: {
+                    isShowingMasterDevicePopover.toggle()
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2.fill")
                             .font(.system(size: 9.5))
@@ -78,12 +69,25 @@ public struct PopoverView: View {
                                     .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
                             )
                     )
+                    .contentShape(Capsule())
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .pointingHandOnHover()
-                .fixedSize()
-                .help("Klik untuk memilih perangkat output utama sistem...")
+                .buttonStyle(.plain)
+                .instantTooltip("Pilih Output Master", edge: .bottom)
+                .popover(isPresented: $isShowingMasterDevicePopover, arrowEdge: .bottom) {
+                    DevicePickerPopover(
+                        appName: "Output Master Sistem",
+                        availableDevices: viewModel.outputDevices,
+                        currentDeviceUID: viewModel.selectedOutputDevice?.uid,
+                        onSelect: { selectedDev in
+                            if let dev = selectedDev {
+                                viewModel.selectOutputDevice(dev)
+                            }
+                        },
+                        onClose: {
+                            isShowingMasterDevicePopover = false
+                        }
+                    )
+                }
             }
             .padding(.horizontal, 14)
             .padding(.top, 12)
@@ -204,84 +208,40 @@ public struct PopoverView: View {
                 .padding(.top, 7)
                 .padding(.bottom, 5)
             
-            // MARK: - Modern Glass Footer (Unified Controls)
+            // MARK: - Modern Glass Footer (Animated Popovers & Instant Tooltips)
             HStack(alignment: .center) {
-                // Settings Menu (Glass Squircle Button)
-                Menu {
-                    Button("Refresh Audio Processes") {
-                        viewModel.refresh()
-                    }
-                    
-                    if viewModel.permissionStatus != .authorized {
-                        Button("Audio Permissions...") {
-                            viewModel.requestPermissions()
-                        }
-                    }
-                    
-                    Button("Setup Safari YouTube...") {
-                        viewModel.showSafariGuide()
-                    }
-                    
-                    Button("Restart Mixer") {
-                        viewModel.restartApp()
-                    }
-                    
-                    Divider()
-                    
-                    Button("Quit MacVolumeMixer") {
-                        viewModel.quitApp()
-                    }
-                    .keyboardShortcut("q", modifiers: .command)
-                } label: {
+                // Settings Menu Button (Animated Popover)
+                Button(action: {
+                    isShowingSettingsPopover.toggle()
+                }) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 11.5))
                         .foregroundColor(.secondary)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 26, height: 26)
                         .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.white.opacity(0.06))
+                            RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                                .fill(Color.white.opacity(0.08))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .stroke(Color.white.opacity(0.10), lineWidth: 0.6)
+                                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                                        .stroke(Color.white.opacity(0.14), lineWidth: 0.8)
                                 )
                         )
                         .contentShape(Rectangle())
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .pointingHandOnHover()
-                .fixedSize()
-                .help("Pengaturan & Opsi mixer audio")
+                .buttonStyle(.plain)
+                .instantTooltip("Pengaturan & Opsi", edge: .top)
+                .popover(isPresented: $isShowingSettingsPopover, arrowEdge: .top) {
+                    SettingsMenuPopover(viewModel: viewModel, onClose: {
+                        isShowingSettingsPopover = false
+                    })
+                }
                 
                 Spacer()
                 
-                // "+ Add App" Glass Capsule Button (Unified & Compact)
-                Menu {
-                    if viewModel.availableRunningApps.isEmpty {
-                        Text("No other running apps")
-                    } else {
-                        ForEach(viewModel.availableRunningApps, id: \.processIdentifier) { app in
-                            Button(action: {
-                                if let bID = app.bundleIdentifier {
-                                    viewModel.addPinnedApp(bundleIdentifier: bID)
-                                }
-                            }) {
-                                HStack {
-                                    if let icon = app.icon {
-                                        Image(nsImage: icon)
-                                    }
-                                    Text(app.localizedName ?? "App")
-                                }
-                            }
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    Button("Choose Other App...") {
-                        viewModel.chooseAppFromDisk()
-                    }
-                } label: {
+                // "+ Add App" Glass Capsule Button (Animated Popover)
+                Button(action: {
+                    isShowingAddAppPopover.toggle()
+                }) {
                     HStack(spacing: 5) {
                         Image(systemName: "plus")
                             .font(.system(size: 9.5, weight: .bold))
@@ -289,25 +249,28 @@ public struct PopoverView: View {
                             .font(.system(size: 11, weight: .medium))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 7, weight: .semibold))
-                            .opacity(0.6)
+                            .opacity(0.65)
                     }
                     .foregroundColor(.primary.opacity(0.85))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4.5)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color.white.opacity(0.07))
+                            .fill(Color.white.opacity(0.09))
                             .overlay(
                                 Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
                             )
                     )
+                    .contentShape(Capsule())
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .pointingHandOnHover()
-                .fixedSize()
-                .help("Tambah aplikasi ke mixer volume")
+                .buttonStyle(.plain)
+                .instantTooltip("Tambah Aplikasi", edge: .top)
+                .popover(isPresented: $isShowingAddAppPopover, arrowEdge: .top) {
+                    AddAppPopover(viewModel: viewModel, onClose: {
+                        isShowingAddAppPopover = false
+                    })
+                }
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 10)
@@ -362,8 +325,7 @@ public struct PopoverView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .pointingHandOnHover()
-            .help(viewModel.isMasterMuted ? "Bunyikan (Unmute) Audio Sistem" : "Bisukan (Mute) Audio Sistem")
+            .instantTooltip(viewModel.isMasterMuted ? "Bunyikan Sistem" : "Bisukan Sistem", edge: .top)
             
             // Info: System Title & Clickable Output Device Pill
             VStack(alignment: .leading, spacing: 2) {
@@ -371,24 +333,10 @@ public struct PopoverView: View {
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
-                    .help("Volume Audio Master Sistem")
                 
-                Menu {
-                    Section("Perangkat Output Utama") {
-                        ForEach(viewModel.outputDevices) { device in
-                            Button(action: {
-                                viewModel.selectOutputDevice(device)
-                            }) {
-                                HStack {
-                                    Text(device.name)
-                                    if device.id == viewModel.selectedOutputDevice?.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } label: {
+                Button(action: {
+                    isShowingSystemRowDevicePopover.toggle()
+                }) {
                     HStack(spacing: 3) {
                         Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2.fill")
                             .font(.system(size: 7.5))
@@ -412,10 +360,23 @@ public struct PopoverView: View {
                             )
                     )
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .pointingHandOnHover()
-                .help("Klik untuk memilih perangkat output audio sistem...")
+                .buttonStyle(.plain)
+                .instantTooltip("Ganti Output Sistem", edge: .top)
+                .popover(isPresented: $isShowingSystemRowDevicePopover, arrowEdge: .bottom) {
+                    DevicePickerPopover(
+                        appName: "Output Sistem",
+                        availableDevices: viewModel.outputDevices,
+                        currentDeviceUID: viewModel.selectedOutputDevice?.uid,
+                        onSelect: { selectedDev in
+                            if let dev = selectedDev {
+                                viewModel.selectOutputDevice(dev)
+                            }
+                        },
+                        onClose: {
+                            isShowingSystemRowDevicePopover = false
+                        }
+                    )
+                }
             }
             .frame(width: 104, alignment: .leading)
             
@@ -433,14 +394,12 @@ public struct PopoverView: View {
                 accentColor: Color.accentColor
             )
             .frame(width: 100, height: 18)
-            .help("Atur volume master sistem (0% - 200%, klik ganda untuk reset 100%)")
             
             // Percentage Label
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.5) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
-                .help("Volume master sistem: \(Int(round(viewModel.masterVolume * 100)))%")
             
             // Placeholder alignment spacing matching remove button
             Color.clear

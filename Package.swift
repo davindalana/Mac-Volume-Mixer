@@ -37,7 +37,8 @@ let package = Package(
                 "Views/MenuBar/AppVolumeRowView.swift",
                 "Views/Components/CustomSlider.swift",
                 "Views/Components/AppIconView.swift",
-                "Views/Components/ViewExtensions.swift"
+                "Views/Components/ViewExtensions.swift",
+                "Views/Components/MixerPopovers.swift"
             ]
         )
     ]

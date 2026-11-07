@@ -14,6 +14,7 @@ public struct AppVolumeRowView: View {
     @State private var localVolume: Float
     @State private var isHovered: Bool = false
     @State private var isDeviceHovered: Bool = false
+    @State private var isShowingDevicePopover: Bool = false
     
     public init(
         process: AudioProcess,
@@ -76,8 +77,7 @@ public struct AppVolumeRowView: View {
                 .frame(width: 26, height: 26)
             }
             .buttonStyle(.plain)
-            .pointingHandOnHover()
-            .help("Klik untuk membuka / beralih ke aplikasi \(cleanAppName)")
+            .instantTooltip("Buka \(cleanAppName)", edge: .top)
             
             // MARK: - 2. App Name & Modern Glass Output Device Pill
             VStack(alignment: .leading, spacing: 2.5) {
@@ -86,39 +86,12 @@ public struct AppVolumeRowView: View {
                     .foregroundColor(process.isMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .help("Aplikasi: \(cleanAppName)")
                 
-                // Clickable Output Device Pill
+                // Clickable Output Device Pill with Animated Popover
                 if let onOutputDeviceChange = onOutputDeviceChange, !availableDevices.isEmpty {
-                    Menu {
-                        Section("Output Audio (\(cleanAppName))") {
-                            Button(action: {
-                                onOutputDeviceChange(nil)
-                            }) {
-                                HStack {
-                                    Text("Default Sistem (\(defaultDevice?.name ?? "Speakers"))")
-                                    if process.outputDeviceUID == nil {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Divider()
-                            
-                            ForEach(availableDevices) { device in
-                                Button(action: {
-                                    onOutputDeviceChange(device)
-                                }) {
-                                    HStack {
-                                        Text(device.name)
-                                        if device.uid == process.outputDeviceUID {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
+                    Button(action: {
+                        isShowingDevicePopover.toggle()
+                    }) {
                         HStack(spacing: 3.5) {
                             Image(systemName: currentDevice?.systemIconName ?? (defaultDevice?.systemIconName ?? "speaker.wave.2.fill"))
                                 .font(.system(size: 8))
@@ -140,7 +113,7 @@ public struct AppVolumeRowView: View {
                                 .fill(
                                     process.outputDeviceUID != nil
                                         ? Color.accentColor.opacity(0.20)
-                                        : Color.white.opacity(isDeviceHovered ? 0.12 : 0.07)
+                                        : Color.white.opacity(isDeviceHovered ? 0.14 : 0.08)
                                 )
                                 .overlay(
                                     Capsule(style: .continuous)
@@ -153,15 +126,26 @@ public struct AppVolumeRowView: View {
                                 )
                         )
                     }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .pointingHandOnHover()
+                    .buttonStyle(.plain)
+                    .instantTooltip("Ganti Output Audio (\(cleanAppName))", edge: .top)
                     .onHover { h in
                         withAnimation(.easeInOut(duration: 0.1)) {
                             isDeviceHovered = h
                         }
                     }
-                    .help("Klik untuk memilih perangkat output khusus untuk \(cleanAppName)...")
+                    .popover(isPresented: $isShowingDevicePopover, arrowEdge: .bottom) {
+                        DevicePickerPopover(
+                            appName: cleanAppName,
+                            availableDevices: availableDevices,
+                            currentDeviceUID: process.outputDeviceUID,
+                            onSelect: { selectedDev in
+                                onOutputDeviceChange(selectedDev)
+                            },
+                            onClose: {
+                                isShowingDevicePopover = false
+                            }
+                        )
+                    }
                 }
             }
             .frame(width: 108, alignment: .leading)
@@ -181,8 +165,7 @@ public struct AppVolumeRowView: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .pointingHandOnHover()
-            .help(process.isMuted ? "Bunyikan (Unmute) \(cleanAppName)" : "Bisukan (Mute) \(cleanAppName)")
+            .instantTooltip(process.isMuted ? "Bunyikan \(cleanAppName)" : "Bisukan \(cleanAppName)", edge: .top)
             
             // MARK: - 4. Volume Slider (Modern macOS Accent, 0% - 200%)
             CustomSlider(
@@ -218,8 +201,7 @@ public struct AppVolumeRowView: View {
                             .frame(width: 14, height: 14)
                     }
                     .buttonStyle(.plain)
-                    .pointingHandOnHover()
-                    .help("Hapus \(cleanAppName) dari daftar mixer")
+                    .instantTooltip("Hapus", edge: .top)
                 } else {
                     Color.clear
                         .frame(width: 14, height: 14)
