@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Antarmuka MenuBar Popover berpenampilan elegan dan modern (SoundSource dark aesthetic).
-/// Menampilkan kontrol Master "Other Apps", baris aplikasi individual (Finder, Music, Safari, WhatsApp, dll),
-/// serta tombol "+ Add App" untuk menambah konfigurasi aplikasi sesuai referensi gambar.
+/// Antarmuka MenuBar Popover berpenampilan Liquid Glass modern khas macOS Sonoma & Sequoia.
+/// Mengadopsi prinsip Glassmorphism Apple: Frosted Glass (`ultraThinMaterial`), border halus,
+/// kartu mengambang (floating glass tiles), dan kontrol terintegrasi yang mudah digunakan.
 public struct PopoverView: View {
     @ObservedObject public var viewModel: MixerViewModel
     @State private var isSpinningRefresh: Bool = false
@@ -16,18 +16,19 @@ public struct PopoverView: View {
             // MARK: - Required Permission Notice
             if viewModel.permissionStatus != .authorized {
                 discreetPermissionBanner
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, 12)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
             }
             
-            // MARK: - Header Title / Status Bar
-            HStack(spacing: 7) {
+            // MARK: - Header Bar (Control Center Glass Header)
+            HStack(spacing: 8) {
                 if let appIcon = NSImage(named: NSImage.applicationIconName) {
                     Image(nsImage: appIcon)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 17, height: 17)
+                        .frame(width: 18, height: 18)
+                        .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
                 }
                 
                 Text("Sound")
@@ -36,7 +37,7 @@ public struct PopoverView: View {
                 
                 Spacer()
                 
-                // Master Output Device Menu (Control Center style)
+                // Master Output Device Capsule (Control Center Style)
                 Menu {
                     Section("Output Device") {
                         ForEach(viewModel.outputDevices) { device in
@@ -61,48 +62,86 @@ public struct PopoverView: View {
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 7))
+                            .font(.system(size: 7, weight: .semibold))
                             .opacity(0.6)
                     }
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
+                    .foregroundColor(.primary.opacity(0.85))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color.primary.opacity(0.05))
+                            .fill(Color.white.opacity(0.08))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                            )
                     )
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
             .padding(.bottom, 6)
             
-            // MARK: - System Master Volume Card
+            // MARK: - Master System Volume Glass Tile
             systemVolumeRow
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 12)
                 .padding(.bottom, 4)
             
-            Divider()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .opacity(0.5)
+            // MARK: - Apps Section Header
+            HStack {
+                Text("APPS")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary.opacity(0.55))
+                    .kerning(0.8)
+                
+                Spacer()
+                
+                if !viewModel.displayProcesses.isEmpty {
+                    Text("\(viewModel.displayProcesses.count)")
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary.opacity(0.8))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.08))
+                        )
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
             
             // MARK: - App Volume Rows Section
             if viewModel.displayProcesses.isEmpty {
-                VStack(spacing: 6) {
+                VStack(spacing: 7) {
                     Image(systemName: "waveform.slash")
-                        .font(.system(size: 18))
+                        .font(.system(size: 20))
                         .foregroundColor(.secondary.opacity(0.5))
                     Text("No other active sound streams")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundColor(.secondary.opacity(0.9))
+                    Text("Sound from active apps will appear here automatically")
+                        .font(.system(size: 9.5))
+                        .foregroundColor(.secondary.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Color.white.opacity(0.02))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .stroke(Color.white.opacity(0.04), lineWidth: 0.6)
+                        )
+                )
+                .padding(.horizontal, 12)
             } else if viewModel.displayProcesses.count > 5 {
                 ScrollView(.vertical, showsIndicators: true) {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 4) {
                         ForEach(viewModel.displayProcesses) { process in
                             AppVolumeRowView(
                                 process: process,
@@ -124,11 +163,11 @@ public struct PopoverView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, 12)
                 }
-                .frame(maxHeight: 240)
+                .frame(maxHeight: 250)
             } else {
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     ForEach(viewModel.displayProcesses) { process in
                         AppVolumeRowView(
                             process: process,
@@ -150,17 +189,20 @@ public struct PopoverView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 12)
             }
             
-            Divider()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .opacity(0.5)
+            // MARK: - Subtle Glass Divider
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 0.8)
+                .padding(.horizontal, 12)
+                .padding(.top, 7)
+                .padding(.bottom, 5)
             
-            // MARK: - Modern Minimalist Footer
+            // MARK: - Modern Glass Footer (Unified Controls)
             HStack(alignment: .center) {
-                // Settings Menu
+                // Settings Menu (Glass Squircle Button)
                 Menu {
                     Button("Refresh Audio Processes") {
                         viewModel.refresh()
@@ -190,15 +232,25 @@ public struct PopoverView: View {
                     Image(systemName: "gearshape")
                         .font(.system(size: 11.5))
                         .foregroundColor(.secondary)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 24, height: 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.white.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(Color.white.opacity(0.10), lineWidth: 0.6)
+                                )
+                        )
                         .contentShape(Rectangle())
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
+                .help("Settings & Options")
                 
                 Spacer()
                 
-                // "+ Add App" Button
+                // "+ Add App" Glass Capsule Button (Unified & Compact)
                 Menu {
                     if viewModel.availableRunningApps.isEmpty {
                         Text("No other running apps")
@@ -225,31 +277,47 @@ public struct PopoverView: View {
                         viewModel.chooseAppFromDisk()
                     }
                 } label: {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 5) {
                         Image(systemName: "plus")
-                            .font(.system(size: 8.5, weight: .semibold))
+                            .font(.system(size: 9.5, weight: .bold))
                         Text("Add App")
-                            .font(.system(size: 10.5, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7, weight: .semibold))
+                            .opacity(0.6)
                     }
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3.5)
+                    .foregroundColor(.primary.opacity(0.85))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4.5)
                     .background(
-                        RoundedRectangle(cornerRadius: 4.5, style: .continuous)
-                            .fill(Color.primary.opacity(0.04))
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.07))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                            )
                     )
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
             }
             .padding(.horizontal, 12)
-            .padding(.top, 4)
             .padding(.bottom, 10)
         }
-        .frame(width: 375)
+        .frame(width: 380)
         .background(
             ZStack {
-                Rectangle().fill(Material.ultraThin)
-                Color.black.opacity(0.08)
+                Rectangle().fill(.ultraThinMaterial)
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.07),
+                        Color.white.opacity(0.02),
+                        Color.black.opacity(0.12)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             }
         )
         .onAppear {
@@ -257,85 +325,54 @@ public struct PopoverView: View {
         }
     }
     
-    // MARK: - System Volume Row (Master Hardware Control)
+    // MARK: - System Master Volume Card (Control Center Glass Tile)
     private var systemVolumeRow: some View {
-        HStack(spacing: 8) {
-            // Speaker Icon representing System Audio
-            ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.15))
-                    .frame(width: 24, height: 24)
-                
-                Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : "speaker.wave.3.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.accentColor)
-            }
-            .frame(width: 24, height: 24)
-            
-            // Info: Name & Output Device Selector
-            VStack(alignment: .leading, spacing: 2) {
-                Text("System")
-                    .font(.system(size: 12.5, weight: .medium))
-                    .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
-                    .lineLimit(1)
-                
-                Menu {
-                    Section("Output Device") {
-                        ForEach(viewModel.outputDevices) { device in
-                            Button(action: {
-                                viewModel.selectOutputDevice(device)
-                            }) {
-                                HStack {
-                                    Text(device.name)
-                                    if device.id == viewModel.selectedOutputDevice?.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2")
-                            .font(.system(size: 8))
-                        Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
-                            .font(.system(size: 9.5, weight: .regular))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 6.5))
-                            .opacity(0.6)
-                    }
-                    .foregroundColor(Color.secondary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                            .fill(Color.primary.opacity(0.04))
-                    )
-                }
-                .menuStyle(.borderlessButton)
-            }
-            .frame(width: 108, alignment: .leading)
-            
-            Spacer(minLength: 4)
-            
-            // Master Mute Button
+        HStack(spacing: 9) {
+            // Interactive Master Mute Button / Vibrant Glass Squircle
             Button(action: {
                 viewModel.toggleMasterMute()
             }) {
-                Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : "speaker.wave.2")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(viewModel.isMasterMuted ? Color.red.opacity(0.85) : Color.secondary)
-                    .frame(width: 20, height: 20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4.5, style: .continuous)
-                            .fill(viewModel.isMasterMuted ? Color.red.opacity(0.14) : Color.clear)
-                    )
-                    .contentShape(Rectangle())
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            viewModel.isMasterMuted
+                                ? LinearGradient(colors: [Color.red.opacity(0.28), Color.red.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                : LinearGradient(colors: [Color.accentColor.opacity(0.35), Color.accentColor.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(
+                                    viewModel.isMasterMuted ? Color.red.opacity(0.4) : Color.accentColor.opacity(0.38),
+                                    lineWidth: 0.8
+                                )
+                        )
+                    
+                    Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : "speaker.wave.3.fill")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundColor(viewModel.isMasterMuted ? Color.red : Color.accentColor)
+                }
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(viewModel.isMasterMuted ? "Unmute System" : "Mute System")
+            
+            // Info: System Title & Output Device Subtitle
+            VStack(alignment: .leading, spacing: 1.5) {
+                Text("System Audio")
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
+                    .lineLimit(1)
+                
+                Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
+                    .font(.system(size: 9.5, weight: .regular))
+                    .foregroundColor(Color.secondary.opacity(0.75))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .frame(width: 104, alignment: .leading)
+            
+            Spacer(minLength: 4)
             
             // Master Volume Slider
             CustomSlider(
@@ -352,7 +389,7 @@ public struct PopoverView: View {
             
             // Percentage Label
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.5) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
             
@@ -360,11 +397,15 @@ public struct PopoverView: View {
             Color.clear
                 .frame(width: 14, height: 14)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Color.primary.opacity(0.035))
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
+                )
         )
     }
     
@@ -396,10 +437,14 @@ public struct PopoverView: View {
             .buttonStyle(.bordered)
             .controlSize(.mini)
         }
-        .padding(6)
+        .padding(7)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.orange.opacity(0.18))
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.orange.opacity(0.16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(Color.orange.opacity(0.28), lineWidth: 0.8)
+                )
         )
     }
 }

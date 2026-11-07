@@ -87,12 +87,12 @@ public final class MacSliderNSView: NSView {
         didSet { needsDisplay = true }
     }
     
-    public var trackColor: NSColor = NSColor(white: 0.35, alpha: 0.6)
+    public var trackColor: NSColor = NSColor(white: 0.22, alpha: 0.6)
     public var onValueChanged: ((Float) -> Void)?
     public var onEditingChanged: ((Bool) -> Void)?
     
     private let knobRadius: CGFloat = 6.0
-    private let trackHeight: CGFloat = 3.5
+    private let trackHeight: CGFloat = 4.0
     private var isDragging: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
     
@@ -120,17 +120,24 @@ public final class MacSliderNSView: NSView {
         let trackY = (bounds.height - trackHeight) / 2
         let trackRect = CGRect(x: knobRadius, y: trackY, width: max(0, trackWidth), height: trackHeight)
         
-        // 1. Background Track (Abu-abu gelap)
+        // 1. Background Track (Glass Inset Groove)
         context.setFillColor(trackColor.cgColor)
         let bgPath = CGPath(roundedRect: trackRect, cornerWidth: trackHeight / 2, cornerHeight: trackHeight / 2, transform: nil)
         context.addPath(bgPath)
         context.fillPath()
         
+        context.saveGState()
+        context.addPath(bgPath)
+        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.08).cgColor)
+        context.setLineWidth(0.6)
+        context.strokePath()
+        context.restoreGState()
+        
         // 2. Baseline Tick Notch pada 100% (Unity Gain di tengah)
         let baselineNorm = CGFloat(baselineValue / maxValue)
         let tickX = knobRadius + (trackWidth * baselineNorm)
         let tickRect = CGRect(x: tickX - 0.75, y: trackY - 2.0, width: 1.5, height: trackHeight + 4.0)
-        context.setFillColor(NSColor(white: 0.55, alpha: 0.9).cgColor)
+        context.setFillColor(NSColor(white: 0.6, alpha: 0.85).cgColor)
         context.fill(tickRect)
         
         // 3. Active Progress Track
@@ -149,15 +156,21 @@ public final class MacSliderNSView: NSView {
             context.fillPath()
         }
         
-        // 4. White Knob with Soft Drop Shadow
+        // 4. White Knob with Soft Drop Shadow & Specular Rim
         let knobX = knobRadius + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
         let knobRect = CGRect(x: knobX - knobRadius, y: knobCenterY - knobRadius, width: knobRadius * 2, height: knobRadius * 2)
         
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 2.5, color: NSColor.black.withAlphaComponent(0.45).cgColor)
+        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3.0, color: NSColor.black.withAlphaComponent(0.40).cgColor)
         context.setFillColor(NSColor.white.cgColor)
         context.fillEllipse(in: knobRect)
+        context.restoreGState()
+        
+        context.saveGState()
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.12).cgColor)
+        context.setLineWidth(0.5)
+        context.strokeEllipse(in: knobRect)
         context.restoreGState()
     }
     

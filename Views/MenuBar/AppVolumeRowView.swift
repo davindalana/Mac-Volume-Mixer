@@ -51,9 +51,10 @@ public struct AppVolumeRowView: View {
                 
                 if process.isPlayingAudio {
                     Circle()
-                        .fill(Color(red: 0.18, green: 0.82, blue: 0.38))
-                        .frame(width: 5.5, height: 5.5)
+                        .fill(Color(red: 0.18, green: 0.85, blue: 0.38))
+                        .frame(width: 6, height: 6)
                         .overlay(Circle().stroke(Color.black.opacity(0.85), lineWidth: 0.8))
+                        .shadow(color: Color.green.opacity(0.8), radius: 2.5)
                         .offset(x: 1, y: 1)
                 }
             }
@@ -98,24 +99,29 @@ public struct AppVolumeRowView: View {
                     } label: {
                         HStack(spacing: 3) {
                             Image(systemName: currentDevice?.systemIconName ?? "speaker.wave.2")
-                                .font(.system(size: 8))
+                                .font(.system(size: 7.5))
                             Text(currentDevice?.name ?? "Default Output")
-                                .font(.system(size: 9.5, weight: .regular))
+                                .font(.system(size: 9, weight: .regular))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 6.5))
-                                .opacity(0.6)
+                                .font(.system(size: 5.5, weight: .bold))
+                                .opacity(0.5)
                         }
                         .foregroundColor(process.outputDeviceUID != nil ? Color.accentColor : Color.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1.5)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
                         .background(
-                            RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                                .fill(process.outputDeviceUID != nil ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+                            Capsule(style: .continuous)
+                                .fill(process.outputDeviceUID != nil ? Color.accentColor.opacity(0.18) : Color.white.opacity(0.06))
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(process.outputDeviceUID != nil ? Color.accentColor.opacity(0.4) : Color.white.opacity(0.10), lineWidth: 0.6)
+                                )
                         )
                     }
                     .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
                 }
             }
             .frame(width: 108, alignment: .leading)
@@ -126,13 +132,13 @@ public struct AppVolumeRowView: View {
             Button(action: onMuteToggle) {
                 Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.wave.2")
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(process.isMuted ? Color.red.opacity(0.85) : (isHovered ? Color.primary : Color.secondary))
-                    .frame(width: 20, height: 20)
+                    .foregroundColor(process.isMuted ? Color.red.opacity(0.9) : (isHovered ? Color.primary : Color.secondary))
+                    .frame(width: 22, height: 22)
                     .background(
-                        RoundedRectangle(cornerRadius: 4.5, style: .continuous)
-                            .fill(process.isMuted ? Color.red.opacity(0.14) : Color.clear)
+                        Circle()
+                            .fill(process.isMuted ? Color.red.opacity(0.18) : (isHovered ? Color.white.opacity(0.08) : Color.clear))
                     )
-                    .contentShape(Rectangle())
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .help(process.isMuted ? "Unmute \(cleanAppName)" : "Mute \(cleanAppName)")
@@ -164,7 +170,7 @@ public struct AppVolumeRowView: View {
                 if let onRemove = onRemove, isHovered {
                     Button(action: onRemove) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10.5))
+                            .font(.system(size: 11))
                             .foregroundColor(Color.secondary.opacity(0.7))
                             .frame(width: 14, height: 14)
                     }
@@ -177,11 +183,15 @@ public struct AppVolumeRowView: View {
             }
             .frame(width: 14, height: 14)
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(isHovered ? Color.primary.opacity(0.04) : Color.clear)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isHovered ? Color.white.opacity(0.07) : Color.white.opacity(0.025))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(isHovered ? Color.white.opacity(0.14) : Color.white.opacity(0.05), lineWidth: 0.6)
+                )
         )
         .contextMenu {
             if let onRemove = onRemove {
