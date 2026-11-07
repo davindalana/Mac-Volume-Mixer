@@ -13,7 +13,10 @@ public struct AppVolumeRowView: View {
     
     @State private var localVolume: Float
     @State private var isHovered: Bool = false
+    @State private var isIconHovered: Bool = false
     @State private var isDeviceHovered: Bool = false
+    @State private var isMuteHovered: Bool = false
+    @State private var isRemoveHovered: Bool = false
     @State private var isShowingDevicePopover: Bool = false
     
     public init(
@@ -69,15 +72,30 @@ public struct AppVolumeRowView: View {
             }) {
                 ZStack(alignment: .bottomTrailing) {
                     AppIconView(icon: process.icon, size: 26)
+                        .padding(2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(isIconHovered ? Color.white.opacity(0.12) : Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(isIconHovered ? Color.white.opacity(0.18) : Color.clear, lineWidth: 0.8)
+                                )
+                        )
                     
                     if process.isPlayingAudio {
                         audioIndicatorDot
                     }
                 }
-                .frame(width: 26, height: 26)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .instantTooltip("Buka \(cleanAppName)", edge: .top)
+            .pointingHandOnHover()
+            .onHover { h in
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    isIconHovered = h
+                }
+            }
             
             // MARK: - 2. App Name & Modern Glass Output Device Pill
             VStack(alignment: .leading, spacing: 2.5) {
@@ -105,31 +123,32 @@ public struct AppVolumeRowView: View {
                                 .font(.system(size: 6.5, weight: .bold))
                                 .opacity(0.7)
                         }
-                        .foregroundColor(process.outputDeviceUID != nil ? Color.accentColor : Color.primary.opacity(0.85))
+                        .foregroundColor(process.outputDeviceUID != nil ? Color.accentColor : (isDeviceHovered ? Color.primary : Color.primary.opacity(0.85)))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(
                             Capsule(style: .continuous)
                                 .fill(
                                     process.outputDeviceUID != nil
-                                        ? Color.accentColor.opacity(0.20)
-                                        : Color.white.opacity(isDeviceHovered ? 0.14 : 0.08)
+                                        ? Color.accentColor.opacity(isDeviceHovered ? 0.30 : 0.20)
+                                        : Color.white.opacity(isDeviceHovered ? 0.18 : 0.08)
                                 )
                                 .overlay(
                                     Capsule(style: .continuous)
                                         .stroke(
                                             process.outputDeviceUID != nil
-                                                ? Color.accentColor.opacity(0.45)
-                                                : Color.white.opacity(isDeviceHovered ? 0.22 : 0.12),
+                                                ? Color.accentColor.opacity(isDeviceHovered ? 0.60 : 0.45)
+                                                : Color.white.opacity(isDeviceHovered ? 0.25 : 0.12),
                                             lineWidth: 0.8
                                         )
                                 )
                         )
+                        .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .instantTooltip("Ganti Output Audio (\(cleanAppName))", edge: .top)
+                    .pointingHandOnHover()
                     .onHover { h in
-                        withAnimation(.easeInOut(duration: 0.1)) {
+                        withAnimation(.easeInOut(duration: 0.12)) {
                             isDeviceHovered = h
                         }
                     }
@@ -148,7 +167,7 @@ public struct AppVolumeRowView: View {
                     }
                 }
             }
-            .frame(width: 108, alignment: .leading)
+            .frame(width: 110, alignment: .leading)
             
             Spacer(minLength: 4)
             
@@ -156,16 +175,34 @@ public struct AppVolumeRowView: View {
             Button(action: onMuteToggle) {
                 Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.wave.2")
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(process.isMuted ? Color.red.opacity(0.9) : (isHovered ? Color.primary : Color.secondary))
+                    .foregroundColor(process.isMuted ? Color.red.opacity(0.9) : (isMuteHovered ? Color.primary : Color.secondary))
                     .frame(width: 22, height: 22)
                     .background(
                         Circle()
-                            .fill(process.isMuted ? Color.red.opacity(0.18) : (isHovered ? Color.white.opacity(0.08) : Color.clear))
+                            .fill(
+                                process.isMuted
+                                    ? Color.red.opacity(isMuteHovered ? 0.30 : 0.18)
+                                    : (isMuteHovered ? Color.white.opacity(0.14) : Color.clear)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        process.isMuted
+                                            ? Color.red.opacity(isMuteHovered ? 0.50 : 0.25)
+                                            : (isMuteHovered ? Color.white.opacity(0.20) : Color.clear),
+                                        lineWidth: 0.8
+                                    )
+                            )
                     )
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .instantTooltip(process.isMuted ? "Bunyikan \(cleanAppName)" : "Bisukan \(cleanAppName)", edge: .top)
+            .pointingHandOnHover()
+            .onHover { h in
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    isMuteHovered = h
+                }
+            }
             
             // MARK: - 4. Volume Slider (Modern macOS Accent, 0% - 200%)
             CustomSlider(
@@ -182,14 +219,12 @@ public struct AppVolumeRowView: View {
                 accentColor: Color.accentColor
             )
             .frame(width: 100, height: 18)
-            .help("Atur volume \(cleanAppName) (0% - 200%, klik ganda untuk reset 100%)")
             
             // MARK: - 5. Percentage Label (e.g. 100%, 150%, 200%)
             Text("\(Int(round(localVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .medium, design: .rounded))
                 .foregroundColor(process.isMuted ? Color.secondary.opacity(0.5) : (localVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
-                .help("Volume \(cleanAppName): \(Int(round(localVolume * 100)))%")
             
             // MARK: - 6. Optional Remove Button (14pt)
             Group {
@@ -197,11 +232,21 @@ public struct AppVolumeRowView: View {
                     Button(action: onRemove) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(Color.secondary.opacity(0.7))
+                            .foregroundColor(isRemoveHovered ? Color.red.opacity(0.9) : Color.secondary.opacity(0.7))
                             .frame(width: 14, height: 14)
+                            .background(
+                                Circle()
+                                    .fill(isRemoveHovered ? Color.white.opacity(0.12) : Color.clear)
+                            )
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .instantTooltip("Hapus", edge: .top)
+                    .pointingHandOnHover()
+                    .onHover { h in
+                        withAnimation(.easeInOut(duration: 0.12)) {
+                            isRemoveHovered = h
+                        }
+                    }
                 } else {
                     Color.clear
                         .frame(width: 14, height: 14)
