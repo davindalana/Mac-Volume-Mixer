@@ -418,25 +418,6 @@ public final class MixerViewModel: ObservableObject {
         systemPermissions.restartApp()
     }
     
-    public func showSafariGuide() {
-        let alert = NSAlert()
-        alert.messageText = "Kontrol Volume YouTube di Safari"
-        alert.informativeText = """
-        Untuk mengatur volume tab/video YouTube di Safari secara fleksibel (0% - 100%):
-
-        1. Buka Safari > Settings (Cmd + ,) > Advanced.
-        2. Centang "Show features for web developers".
-        3. Di Menu Bar Safari atas, klik menu "Develop" > centang "Allow JavaScript from Apple Events".
-
-        Selesai! Slider volume Mac Volume Mixer akan langsung mengatur volume YouTube secara real-time.
-
-        (Catatan: Fungsi Mute hardware selalu aktif otomatis tanpa perlu pengaturan ini)
-        """
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Mengerti")
-        alert.runModal()
-    }
-    
     public func quitApp() {
         NSApplication.shared.terminate(nil)
     }

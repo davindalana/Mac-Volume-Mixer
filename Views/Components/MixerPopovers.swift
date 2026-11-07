@@ -193,11 +193,6 @@ public struct SettingsMenuPopover: View {
                 }
             }
             
-            SettingsMenuItemRow(title: "Petunjuk Safari YouTube...", icon: "safari") {
-                viewModel.showSafariGuide()
-                onClose()
-            }
-            
             SettingsMenuItemRow(title: "Restart Mixer", icon: "arrow.triangle.2.circlepath") {
                 viewModel.restartApp()
                 onClose()
