@@ -13,7 +13,6 @@ public struct AppVolumeRowView: View {
     
     @State private var localVolume: Float
     @State private var isHovered: Bool = false
-    @State private var isIconHovered: Bool = false
     @State private var isDeviceHovered: Bool = false
     @State private var isMuteHovered: Bool = false
     @State private var isRemoveHovered: Bool = false
@@ -63,34 +62,16 @@ public struct AppVolumeRowView: View {
     
     public var body: some View {
         HStack(spacing: 7) {
-            // MARK: - 1. App Icon with Active Audio Indicator (Click to activate)
-            Button(action: {
-                if let app = NSRunningApplication(processIdentifier: process.pid) {
-                    app.activate()
-                }
-            }) {
-                ZStack(alignment: .bottomTrailing) {
-                    AppIconView(icon: process.icon, size: 26)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(isIconHovered ? Color.white.opacity(0.12) : Color.clear)
-                        )
-                    
-                    if process.isPlayingAudio {
-                        audioIndicatorDot
-                            .offset(x: 2, y: 2)
-                    }
-                }
-                .frame(width: 26, height: 26)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .pointingHandOnHover()
-            .onHover { h in
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    isIconHovered = h
+            // MARK: - 1. Native App Icon with Active Audio Indicator (Pure display, no artificial borders)
+            ZStack(alignment: .bottomTrailing) {
+                AppIconView(icon: process.icon, size: 26)
+                
+                if process.isPlayingAudio {
+                    audioIndicatorDot
+                        .offset(x: 2, y: 2)
                 }
             }
+            .frame(width: 26, height: 26)
             
             // MARK: - 2. App Name & Clean Output Device Pill
             VStack(alignment: .leading, spacing: 2) {
@@ -142,10 +123,9 @@ public struct AppVolumeRowView: View {
                     .buttonStyle(.plain)
                     .pointingHandOnHover()
                     .onHover { h in
-                        withAnimation(.easeInOut(duration: 0.12)) {
-                            isDeviceHovered = h
-                        }
+                        isDeviceHovered = h
                     }
+                    .animation(.easeInOut(duration: 0.12), value: isDeviceHovered)
                     .popover(isPresented: $isShowingDevicePopover, arrowEdge: .bottom) {
                         DevicePickerPopover(
                             appName: cleanAppName,
@@ -193,10 +173,9 @@ public struct AppVolumeRowView: View {
             .buttonStyle(.plain)
             .pointingHandOnHover()
             .onHover { h in
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    isMuteHovered = h
-                }
+                isMuteHovered = h
             }
+            .animation(.easeInOut(duration: 0.12), value: isMuteHovered)
             
             // MARK: - 4. Volume Slider (105x18)
             CustomSlider(
@@ -238,10 +217,9 @@ public struct AppVolumeRowView: View {
                     .buttonStyle(.plain)
                     .pointingHandOnHover()
                     .onHover { h in
-                        withAnimation(.easeInOut(duration: 0.12)) {
-                            isRemoveHovered = h
-                        }
+                        isRemoveHovered = h
                     }
+                    .animation(.easeInOut(duration: 0.12), value: isRemoveHovered)
                 } else {
                     Color.clear
                         .frame(width: 14, height: 14)
@@ -266,10 +244,9 @@ public struct AppVolumeRowView: View {
             Button(process.isMuted ? "Bunyikan (Unmute)" : "Bisukan (Mute)", action: onMuteToggle)
         }
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.12)) {
-                isHovered = hovering
-            }
+            isHovered = hovering
         }
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
         .onChange(of: process.volume) { _, newVol in
             localVolume = newVol
         }

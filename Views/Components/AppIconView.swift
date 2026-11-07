@@ -1,8 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// Komponen visual untuk menampilkan icon aplikasi macOS dengan ukuran custom,
-/// rounded corners, border halus, dan fallback symbol jika icon tidak tersedia.
+/// Komponen visual untuk menampilkan icon aplikasi macOS secara bersih dan native.
+/// Menampilkan icon aplikasi resmi tanpa bingkai atau overlay buatan yang mengganggu.
 public struct AppIconView: View {
     public let icon: NSImage?
     public let size: CGFloat
@@ -20,10 +20,10 @@ public struct AppIconView: View {
                     .aspectRatio(contentMode: .fit)
             } else {
                 ZStack {
-                    RoundedRectangle(cornerRadius: size * 0.22)
+                    RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color.gray.opacity(0.35), Color.gray.opacity(0.2)],
+                                colors: [Color.gray.opacity(0.35), Color.gray.opacity(0.20)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -37,20 +37,14 @@ public struct AppIconView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.22))
-        .overlay(
-            RoundedRectangle(cornerRadius: size * 0.22)
-                .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.15), radius: 1.5, x: 0, y: 1)
     }
 }
 
 #Preview {
     HStack(spacing: 16) {
-        AppIconView(icon: nil, size: 24)
-        AppIconView(icon: NSWorkspace.shared.icon(forFile: "/Applications/Safari.app"), size: 24)
-        AppIconView(icon: NSWorkspace.shared.icon(forFile: "/System/Applications/Music.app"), size: 32)
+        AppIconView(icon: nil, size: 26)
+        AppIconView(icon: NSWorkspace.shared.icon(forFile: "/Applications/Safari.app"), size: 26)
+        AppIconView(icon: NSWorkspace.shared.icon(forFile: "/System/Applications/Music.app"), size: 26)
     }
     .padding()
 }

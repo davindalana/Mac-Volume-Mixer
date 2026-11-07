@@ -80,10 +80,9 @@ public struct PopoverView: View {
                 .buttonStyle(.plain)
                 .pointingHandOnHover()
                 .onHover { h in
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        isMasterDeviceHovered = h
-                    }
+                    isMasterDeviceHovered = h
                 }
+                .animation(.easeInOut(duration: 0.12), value: isMasterDeviceHovered)
                 .popover(isPresented: $isShowingMasterDevicePopover, arrowEdge: .bottom) {
                     DevicePickerPopover(
                         appName: "Output Master Sistem",
@@ -242,10 +241,9 @@ public struct PopoverView: View {
                 .buttonStyle(.plain)
                 .pointingHandOnHover()
                 .onHover { h in
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        isSettingsHovered = h
-                    }
+                    isSettingsHovered = h
                 }
+                .animation(.easeInOut(duration: 0.12), value: isSettingsHovered)
                 .popover(isPresented: $isShowingSettingsPopover, arrowEdge: .top) {
                     SettingsMenuPopover(viewModel: viewModel, onClose: {
                         isShowingSettingsPopover = false
@@ -280,10 +278,9 @@ public struct PopoverView: View {
                 .buttonStyle(.plain)
                 .pointingHandOnHover()
                 .onHover { h in
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        isAddAppHovered = h
-                    }
+                    isAddAppHovered = h
                 }
+                .animation(.easeInOut(duration: 0.12), value: isAddAppHovered)
                 .popover(isPresented: $isShowingAddAppPopover, arrowEdge: .top) {
                     AddAppPopover(viewModel: viewModel, onClose: {
                         isShowingAddAppPopover = false
@@ -375,10 +372,9 @@ public struct PopoverView: View {
                 .buttonStyle(.plain)
                 .pointingHandOnHover()
                 .onHover { h in
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        isSystemDeviceHovered = h
-                    }
+                    isSystemDeviceHovered = h
                 }
+                .animation(.easeInOut(duration: 0.12), value: isSystemDeviceHovered)
                 .popover(isPresented: $isShowingSystemRowDevicePopover, arrowEdge: .bottom) {
                     DevicePickerPopover(
                         appName: "Output Sistem",
@@ -429,10 +425,9 @@ public struct PopoverView: View {
             .buttonStyle(.plain)
             .pointingHandOnHover()
             .onHover { h in
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    isSystemMuteHovered = h
-                }
+                isSystemMuteHovered = h
             }
+            .animation(.easeInOut(duration: 0.12), value: isSystemMuteHovered)
             
             // MARK: - 4. Master Volume Slider (105x18 - Aligned with App Rows)
             CustomSlider(
@@ -469,10 +464,9 @@ public struct PopoverView: View {
                 )
         )
         .onHover { h in
-            withAnimation(.easeInOut(duration: 0.12)) {
-                isSystemRowHovered = h
-            }
+            isSystemRowHovered = h
         }
+        .animation(.easeInOut(duration: 0.12), value: isSystemRowHovered)
     }
     
     // MARK: - Discreet Permission Banner
