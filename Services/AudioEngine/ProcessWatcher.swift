@@ -50,13 +50,6 @@ public final class ProcessWatcher: @unchecked Sendable {
                 self?.handleAppChange(notification: notification)
             }
             .store(in: &cancellables)
-        
-        // Notifikasi saat aplikasi berganti aktif
-        notificationCenter.publisher(for: NSWorkspace.didActivateApplicationNotification)
-            .sink { [weak self] notification in
-                self?.handleAppChange(notification: notification)
-            }
-            .store(in: &cancellables)
     }
     
     /// Menghentikan seluruh observasi

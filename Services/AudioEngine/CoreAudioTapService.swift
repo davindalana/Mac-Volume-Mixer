@@ -79,9 +79,9 @@ public final class CoreAudioTapService: AudioEngineProtocol, @unchecked Sendable
     public init(processWatcher: ProcessWatcher = ProcessWatcher()) {
         self.processWatcher = processWatcher
         
-        // Mengamati notifikasi aplikasi dibuka/ditutup dari ProcessWatcher
+        // Mengamati notifikasi aplikasi dibuka/ditutup dari ProcessWatcher dengan debounce 300ms
         processWatcher.onAppsChanged
-            .debounce(for: .milliseconds(150), scheduler: DispatchQueue.main)
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] in
                 self?.refreshAudioProcesses()
             }

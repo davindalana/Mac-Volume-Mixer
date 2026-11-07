@@ -2,6 +2,7 @@ import Foundation
 import CoreAudio
 import AudioToolbox
 import CoreGraphics
+import Accelerate
 import os.log
 
 /// Session DSP aktif per aplikasi / bundleID
@@ -23,7 +24,7 @@ private final class AppTapSession {
     }
 }
 
-// IOProc C-callback untuk DSP attenuation & amplification real-time
+// IOProc C-callback untuk DSP attenuation & amplification real-time berbasis hardware SIMD / vDSP (Accelerate)
 private func mixerEngineIOProc(
     inDevice: AudioObjectID,
     inNow: UnsafePointer<AudioTimeStamp>,
@@ -35,7 +36,7 @@ private func mixerEngineIOProc(
 ) -> OSStatus {
     guard let ptr = inClientData else { return noErr }
     let session = Unmanaged<AppTapSession>.fromOpaque(ptr).takeUnretainedValue()
-    let g = session.gain
+    var g = session.gain
     
     let inBuffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: inInputData))
     let outBuffers = UnsafeMutableAudioBufferListPointer(outOutputData)
@@ -44,6 +45,9 @@ private func mixerEngineIOProc(
     let outCount = outBuffers.count
     let commonCount = min(inCount, outCount)
     
+    var minLimit: Float32 = -1.0
+    var maxLimit: Float32 = 1.0
+    
     for i in 0..<commonCount {
         let inBuf = inBuffers[i]
         let outBuf = outBuffers[i]
@@ -51,11 +55,16 @@ private func mixerEngineIOProc(
               let outData = outBuf.mData?.assumingMemoryBound(to: Float32.self) else { continue }
         
         let byteSize = min(inBuf.mDataByteSize, outBuf.mDataByteSize)
-        let frameCount = Int(byteSize) / MemoryLayout<Float32>.size
-        for j in 0..<frameCount {
-            let sample = inData[j] * g
-            // Soft-limiting clamping agar tidak terjadi digital clipping saat boost hingga 200%
-            outData[j] = max(-1.0, min(1.0, sample))
+        let frameCount = vDSP_Length(Int(byteSize) / MemoryLayout<Float32>.size)
+        
+        if frameCount > 0 {
+            // Operasi perkalian vektor termultithread SIMD (hardware acceleration)
+            vDSP_vsmul(inData, 1, &g, outData, 1, frameCount)
+            
+            // Soft-clamping vectorized hardware limit (-1.0 ... 1.0) untuk mencegah distorsi
+            if g > 1.0 {
+                vDSP_vclip(outData, 1, &minLimit, &maxLimit, outData, 1, frameCount)
+            }
         }
     }
     
