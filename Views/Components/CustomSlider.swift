@@ -1,9 +1,9 @@
 import SwiftUI
 import AppKit
 
-/// Slider kustom dengan estetika macOS persis seperti screenshot (SoundSource style).
+/// Slider kustom dengan estetika macOS Sonoma & Sequoia persis seperti Control Center & SoundSource.
 /// Mendukung rentang volume hingga 200% (2.0) dengan titik dasar 100% (1.0) di tengah,
-/// dilengkapi tick notch pada 100%, magnet snap, dan double-click reset ke 100%.
+/// dilengkapi notch unity gain pada 100%, magnet snap, double-click reset ke 100%, dan scroll wheel.
 public struct CustomSlider: NSViewRepresentable {
     @Binding public var value: Float
     public var maxValue: Float
@@ -17,7 +17,7 @@ public struct CustomSlider: NSViewRepresentable {
         maxValue: Float = 2.0,
         baselineValue: Float = 1.0,
         isMuted: Bool = false,
-        accentColor: Color = Color(red: 1.0, green: 0.584, blue: 0.0), // Oranye hangat
+        accentColor: Color = Color.accentColor,
         onEditingChanged: ((Bool) -> Void)? = nil
     ) {
         self._value = value
@@ -53,7 +53,7 @@ public struct CustomSlider: NSViewRepresentable {
     }
 }
 
-/// Custom NSView yang menangani rendering dan event mouse langsung di tingkat AppKit.
+/// Custom NSView yang menangani rendering dan event mouse langsung di tingkat AppKit dengan kualitas Apple-native.
 public final class MacSliderNSView: NSView {
     public var maxValue: Float = 2.0 {
         didSet { needsDisplay = true }
@@ -79,27 +79,27 @@ public final class MacSliderNSView: NSView {
         }
     }
     
-    public var accentColor: NSColor = NSColor(red: 1.0, green: 0.584, blue: 0.0, alpha: 1.0) {
+    public var accentColor: NSColor = NSColor.controlAccentColor {
         didSet { needsDisplay = true }
     }
     
-    public var boostColor: NSColor = NSColor(red: 1.0, green: 0.75, blue: 0.2, alpha: 1.0) {
+    public var boostColor: NSColor = NSColor(red: 1.0, green: 0.62, blue: 0.12, alpha: 1.0) {
         didSet { needsDisplay = true }
     }
     
-    public var trackColor: NSColor = NSColor(white: 0.22, alpha: 0.6)
+    public var trackColor: NSColor = NSColor(white: 0.28, alpha: 0.50)
     public var onValueChanged: ((Float) -> Void)?
     public var onEditingChanged: ((Bool) -> Void)?
     
-    private let knobRadius: CGFloat = 6.0
-    private let trackHeight: CGFloat = 4.0
+    private let knobRadius: CGFloat = 6.5
+    private let trackHeight: CGFloat = 4.5
     private var isDragging: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
     
     public override var isFlipped: Bool { true }
     
     public override var intrinsicContentSize: NSSize {
-        return NSSize(width: 100, height: 18)
+        return NSSize(width: 105, height: 18)
     }
     
     public override init(frame frameRect: NSRect) {
@@ -112,6 +112,24 @@ public final class MacSliderNSView: NSView {
         wantsLayer = true
     }
     
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .cursorUpdate],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+    }
+    
+    public override func cursorUpdate(with event: NSEvent) {
+        NSCursor.pointingHand.set()
+    }
+    
     public override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
@@ -120,12 +138,13 @@ public final class MacSliderNSView: NSView {
         let trackY = (bounds.height - trackHeight) / 2
         let trackRect = CGRect(x: knobRadius, y: trackY, width: max(0, trackWidth), height: trackHeight)
         
-        // 1. Background Track (Glass Inset Groove)
+        // 1. Background Groove Track
         context.setFillColor(trackColor.cgColor)
         let bgPath = CGPath(roundedRect: trackRect, cornerWidth: trackHeight / 2, cornerHeight: trackHeight / 2, transform: nil)
         context.addPath(bgPath)
         context.fillPath()
         
+        // Subtle inner stroke rim
         context.saveGState()
         context.addPath(bgPath)
         context.setStrokeColor(NSColor(white: 1.0, alpha: 0.08).cgColor)
@@ -133,12 +152,16 @@ public final class MacSliderNSView: NSView {
         context.strokePath()
         context.restoreGState()
         
-        // 2. Baseline Tick Notch pada 100% (Unity Gain di tengah)
+        // 2. Baseline Unity Notch pada 100% (1.0)
         let baselineNorm = CGFloat(baselineValue / maxValue)
         let tickX = knobRadius + (trackWidth * baselineNorm)
-        let tickRect = CGRect(x: tickX - 0.75, y: trackY - 2.0, width: 1.5, height: trackHeight + 4.0)
-        context.setFillColor(NSColor(white: 0.6, alpha: 0.85).cgColor)
-        context.fill(tickRect)
+        let tickHeight = trackHeight + 3.0
+        let tickY = (bounds.height - tickHeight) / 2
+        let tickRect = CGRect(x: tickX - 0.75, y: tickY, width: 1.5, height: tickHeight)
+        let tickPath = CGPath(roundedRect: tickRect, cornerWidth: 0.75, cornerHeight: 0.75, transform: nil)
+        context.setFillColor(NSColor(white: 1.0, alpha: 0.35).cgColor)
+        context.addPath(tickPath)
+        context.fillPath()
         
         // 3. Active Progress Track
         let progress = CGFloat(max(0.0, min(maxValue, value)) / maxValue)
@@ -149,33 +172,32 @@ public final class MacSliderNSView: NSView {
             let activeRect = CGRect(x: knobRadius, y: trackY, width: activeWidth, height: trackHeight)
             let activePath = CGPath(roundedRect: activeRect, cornerWidth: trackHeight / 2, cornerHeight: trackHeight / 2, transform: nil)
             
-            // Jika volume melebihi 100%, gunakan warna oranye-emas terang untuk zona boost
             let fillColor = isMuted ? trackColor : (value > baselineValue ? boostColor : accentColor)
             context.setFillColor(fillColor.cgColor)
             context.addPath(activePath)
             context.fillPath()
         }
         
-        // 4. White Knob with Soft Drop Shadow & Specular Rim
+        // 4. Apple-style White Knob with Soft Drop Shadow & Specular Rim
         let knobX = knobRadius + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
-        let knobRect = CGRect(x: knobX - knobRadius, y: knobCenterY - knobRadius, width: knobRadius * 2, height: knobRadius * 2)
+        let knobDiameter = knobRadius * 2
+        let knobRect = CGRect(x: knobX - knobRadius, y: knobCenterY - knobRadius, width: knobDiameter, height: knobDiameter)
         
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3.0, color: NSColor.black.withAlphaComponent(0.40).cgColor)
+        context.setShadow(offset: CGSize(width: 0, height: -1.0), blur: 2.5, color: NSColor.black.withAlphaComponent(0.35).cgColor)
         context.setFillColor(NSColor.white.cgColor)
         context.fillEllipse(in: knobRect)
         context.restoreGState()
         
         context.saveGState()
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.12).cgColor)
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.14).cgColor)
         context.setLineWidth(0.5)
         context.strokeEllipse(in: knobRect)
         context.restoreGState()
     }
     
     public override func mouseDown(with event: NSEvent) {
-        // Double click: Reset kembali ke baseline (100% / 1.0)
         if event.clickCount == 2 {
             self.value = baselineValue
             onValueChanged?(baselineValue)
@@ -217,8 +239,8 @@ public final class MacSliderNSView: NSView {
         let rawProgress = (location.x - knobRadius) / trackWidth
         var calcVal = Float(rawProgress) * maxValue
         
-        // Magnet Snap ke 100% (baselineValue) jika berada di radius +/- 5%
-        if abs(calcVal - baselineValue) < 0.06 {
+        // Magnet Snap ke 100% (baselineValue) jika berada di radius +/- 4%
+        if abs(calcVal - baselineValue) < 0.05 {
             calcVal = baselineValue
         }
         

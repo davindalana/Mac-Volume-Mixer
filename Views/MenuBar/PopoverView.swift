@@ -13,6 +13,7 @@ public struct PopoverView: View {
     
     // Hover states for smooth background feedback without text popups
     @State private var isMasterDeviceHovered: Bool = false
+    @State private var isSystemRowHovered: Bool = false
     @State private var isSystemMuteHovered: Bool = false
     @State private var isSystemDeviceHovered: Bool = false
     @State private var isSettingsHovered: Bool = false
@@ -65,7 +66,7 @@ public struct PopoverView: View {
                     }
                     .foregroundColor(isMasterDeviceHovered ? Color.primary : Color.primary.opacity(0.85))
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 3.5)
                     .background(
                         Capsule(style: .continuous)
                             .fill(Color.white.opacity(isMasterDeviceHovered ? 0.18 : 0.08))
@@ -100,10 +101,10 @@ public struct PopoverView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.top, 12)
+            .padding(.top, 11)
             .padding(.bottom, 6)
             
-            // MARK: - Master System Volume Glass Tile
+            // MARK: - Master System Volume Glass Tile (Pixel-Aligned with App Rows)
             systemVolumeRow
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
@@ -130,7 +131,7 @@ public struct PopoverView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.top, 8)
+            .padding(.top, 7)
             .padding(.bottom, 4)
             
             // MARK: - App Volume Rows Section
@@ -149,10 +150,10 @@ public struct PopoverView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
                 .background(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color.white.opacity(0.02))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .stroke(Color.white.opacity(0.04), lineWidth: 0.6)
                         )
                 )
@@ -218,7 +219,7 @@ public struct PopoverView: View {
                 .padding(.top, 7)
                 .padding(.bottom, 5)
             
-            // MARK: - Modern Glass Footer (Animated Popovers & Hover Feedback)
+            // MARK: - Modern Glass Footer (Animated Popovers & Clean Hover Feedback)
             HStack(alignment: .center) {
                 // Settings Menu Button (Animated Popover with Clean Glass Hover)
                 Button(action: {
@@ -227,13 +228,13 @@ public struct PopoverView: View {
                     Image(systemName: "gearshape")
                         .font(.system(size: 11.5))
                         .foregroundColor(isSettingsHovered ? .primary : .secondary)
-                        .frame(width: 26, height: 26)
+                        .frame(width: 24, height: 24)
                         .background(
-                            RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(Color.white.opacity(isSettingsHovered ? 0.20 : 0.08))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
-                                        .stroke(Color.white.opacity(isSettingsHovered ? 0.28 : 0.14), lineWidth: 0.8)
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(Color.white.opacity(isSettingsHovered ? 0.28 : 0.12), lineWidth: 0.8)
                                 )
                         )
                         .contentShape(Rectangle())
@@ -257,24 +258,21 @@ public struct PopoverView: View {
                 Button(action: {
                     isShowingAddAppPopover.toggle()
                 }) {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4.5) {
                         Image(systemName: "plus")
                             .font(.system(size: 9.5, weight: .bold))
                         Text("Add App")
                             .font(.system(size: 11, weight: .medium))
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 7, weight: .semibold))
-                            .opacity(0.65)
                     }
                     .foregroundColor(Color.primary.opacity(isAddAppHovered ? 1.0 : 0.85))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4.5)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color.white.opacity(isAddAppHovered ? 0.20 : 0.09))
+                            .fill(Color.white.opacity(isAddAppHovered ? 0.18 : 0.08))
                             .overlay(
                                 Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(isAddAppHovered ? 0.28 : 0.15), lineWidth: 0.8)
+                                    .stroke(Color.white.opacity(isAddAppHovered ? 0.26 : 0.12), lineWidth: 0.8)
                             )
                     )
                     .contentShape(Capsule())
@@ -293,21 +291,22 @@ public struct PopoverView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.bottom, 10)
+            .padding(.bottom, 9)
         }
-        .frame(width: 380)
+        .frame(width: 390)
         .background(
             ZStack {
                 Rectangle().fill(.ultraThinMaterial)
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(0.07),
-                        Color.white.opacity(0.02),
-                        Color.black.opacity(0.12)
+                        Color.white.opacity(0.08),
+                        Color.clear
                     ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
+                .frame(height: 48)
+                .frame(maxHeight: .infinity, alignment: .top)
             }
         )
         .onAppear {
@@ -315,57 +314,34 @@ public struct PopoverView: View {
         }
     }
     
-    // MARK: - System Master Volume Card (Control Center Glass Tile)
+    // MARK: - System Master Volume Card (Control Center Glass Tile - Pixel Aligned with App Rows)
     private var systemVolumeRow: some View {
-        HStack(spacing: 9) {
-            // Interactive Master Mute Button / Vibrant Glass Squircle
-            Button(action: {
-                viewModel.toggleMasterMute()
-            }) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(
-                            viewModel.isMasterMuted
-                                ? LinearGradient(
-                                    colors: [Color.red.opacity(isSystemMuteHovered ? 0.40 : 0.28), Color.red.opacity(isSystemMuteHovered ? 0.22 : 0.12)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [Color.accentColor.opacity(isSystemMuteHovered ? 0.50 : 0.35), Color.accentColor.opacity(isSystemMuteHovered ? 0.26 : 0.15)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+        HStack(spacing: 7) {
+            // MARK: - 1. System Speaker Icon Squircle (26x26)
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor.opacity(0.90), Color.accentColor.opacity(0.70)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(
-                                    viewModel.isMasterMuted
-                                        ? Color.red.opacity(isSystemMuteHovered ? 0.60 : 0.4)
-                                        : Color.accentColor.opacity(isSystemMuteHovered ? 0.58 : 0.38),
-                                    lineWidth: 0.8
-                                )
-                        )
-                    
-                    Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : "speaker.wave.3.fill")
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundColor(viewModel.isMasterMuted ? Color.red : Color.accentColor)
-                }
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 0.6)
+                    )
+                
+                Image(systemName: "speaker.wave.3.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
             }
-            .buttonStyle(.plain)
-            .pointingHandOnHover()
-            .onHover { h in
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    isSystemMuteHovered = h
-                }
-            }
+            .frame(width: 26, height: 26)
             
-            // Info: System Title & Clickable Output Device Pill
+            // MARK: - 2. System Title & Output Device Pill (106)
             VStack(alignment: .leading, spacing: 2) {
                 Text("System Audio")
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
                 
@@ -381,17 +357,17 @@ public struct PopoverView: View {
                             .truncationMode(.tail)
                         Image(systemName: "chevron.down")
                             .font(.system(size: 6, weight: .bold))
-                            .opacity(0.6)
+                            .opacity(0.65)
                     }
                     .foregroundColor(isSystemDeviceHovered ? Color.primary : Color.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color.white.opacity(isSystemDeviceHovered ? 0.18 : 0.06))
+                            .fill(Color.white.opacity(isSystemDeviceHovered ? 0.16 : 0.07))
                             .overlay(
                                 Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(isSystemDeviceHovered ? 0.25 : 0.12), lineWidth: 0.8)
+                                    .stroke(Color.white.opacity(isSystemDeviceHovered ? 0.22 : 0.10), lineWidth: 0.7)
                             )
                     )
                     .contentShape(Capsule())
@@ -419,11 +395,46 @@ public struct PopoverView: View {
                     )
                 }
             }
-            .frame(width: 110, alignment: .leading)
+            .frame(width: 106, alignment: .leading)
             
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             
-            // Master Volume Slider
+            // MARK: - 3. Master Mute Button (20x20 - Aligned with App Rows)
+            Button(action: {
+                viewModel.toggleMasterMute()
+            }) {
+                Image(systemName: viewModel.isMasterMuted ? "speaker.slash.fill" : (viewModel.masterVolume == 0 ? "speaker.fill" : (viewModel.masterVolume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.2.fill")))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(viewModel.isMasterMuted ? Color.red : (isSystemMuteHovered ? Color.primary : Color.secondary))
+                    .frame(width: 20, height: 20)
+                    .background(
+                        Circle()
+                            .fill(
+                                viewModel.isMasterMuted
+                                    ? Color.red.opacity(isSystemMuteHovered ? 0.28 : 0.16)
+                                    : (isSystemMuteHovered ? Color.white.opacity(0.12) : Color.clear)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        viewModel.isMasterMuted
+                                            ? Color.red.opacity(isSystemMuteHovered ? 0.45 : 0.22)
+                                            : (isSystemMuteHovered ? Color.white.opacity(0.18) : Color.clear),
+                                        lineWidth: 0.6
+                                    )
+                            )
+                    )
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .pointingHandOnHover()
+            .onHover { h in
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    isSystemMuteHovered = h
+                }
+            }
+            
+            // MARK: - 4. Master Volume Slider (105x18 - Aligned with App Rows)
             CustomSlider(
                 value: Binding(
                     get: { viewModel.masterVolume },
@@ -434,28 +445,34 @@ public struct PopoverView: View {
                 isMuted: viewModel.isMasterMuted,
                 accentColor: Color.accentColor
             )
-            .frame(width: 100, height: 18)
+            .frame(width: 105, height: 18)
             
-            // Percentage Label
+            // MARK: - 5. Percentage Label (34 - Aligned with App Rows)
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.5) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
+                .monospacedDigit()
+                .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.4) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
             
-            // Placeholder alignment spacing matching remove button
+            // MARK: - 6. Alignment Placeholder (14x14 - Matching Remove Button)
             Color.clear
                 .frame(width: 14, height: 14)
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSystemRowHovered ? Color.white.opacity(0.08) : Color.white.opacity(0.045))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(isSystemRowHovered ? Color.white.opacity(0.16) : Color.white.opacity(0.08), lineWidth: 0.6)
                 )
         )
+        .onHover { h in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isSystemRowHovered = h
+            }
+        }
     }
     
     // MARK: - Discreet Permission Banner

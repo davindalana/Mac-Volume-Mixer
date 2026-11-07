@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 /// Baris kontrol volume individual per aplikasi sesuai tema Liquid Glass macOS Sonoma & Sequoia.
-/// Layout: [App Icon] [App Name & Output Device Pill] [Spacer] [Mute Button] [CustomSlider] [Percentage] [Remove Button]
+/// Layout kolom konsisten: [Icon 26x26] [Nama & Output Pill 106] [Spacer] [Mute 20x20] [Slider 105x18] [% 34] [Hapus 14]
 public struct AppVolumeRowView: View {
     public let process: AudioProcess
     public let availableDevices: [AudioDevice]
@@ -55,16 +55,15 @@ public struct AppVolumeRowView: View {
     
     private var audioIndicatorDot: some View {
         Circle()
-            .fill(Color(red: 0.18, green: 0.88, blue: 0.38))
-            .frame(width: 6.5, height: 6.5)
-            .overlay(Circle().stroke(Color.black.opacity(0.85), lineWidth: 0.8))
-            .shadow(color: Color.green.opacity(0.85), radius: 2.5)
-            .offset(x: 1, y: 1)
+            .fill(Color(red: 0.20, green: 0.88, blue: 0.40))
+            .frame(width: 7, height: 7)
+            .overlay(Circle().stroke(Color.black.opacity(0.8), lineWidth: 1.0))
+            .shadow(color: Color.green.opacity(0.7), radius: 2)
     }
     
     public var body: some View {
-        HStack(spacing: 8) {
-            // MARK: - 1. App Icon with Active Audio Indicator (Clickable to activate app)
+        HStack(spacing: 7) {
+            // MARK: - 1. App Icon with Active Audio Indicator (Click to activate)
             Button(action: {
                 if let app = NSRunningApplication(processIdentifier: process.pid) {
                     app.activate()
@@ -72,21 +71,17 @@ public struct AppVolumeRowView: View {
             }) {
                 ZStack(alignment: .bottomTrailing) {
                     AppIconView(icon: process.icon, size: 26)
-                        .padding(2)
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(isIconHovered ? Color.white.opacity(0.12) : Color.clear)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .stroke(isIconHovered ? Color.white.opacity(0.18) : Color.clear, lineWidth: 0.8)
-                                )
                         )
                     
                     if process.isPlayingAudio {
                         audioIndicatorDot
+                            .offset(x: 2, y: 2)
                     }
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 26, height: 26)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -97,22 +92,21 @@ public struct AppVolumeRowView: View {
                 }
             }
             
-            // MARK: - 2. App Name & Modern Glass Output Device Pill
-            VStack(alignment: .leading, spacing: 2.5) {
+            // MARK: - 2. App Name & Clean Output Device Pill
+            VStack(alignment: .leading, spacing: 2) {
                 Text(cleanAppName)
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(process.isMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 
-                // Clickable Output Device Pill with Animated Popover
                 if let onOutputDeviceChange = onOutputDeviceChange, !availableDevices.isEmpty {
                     Button(action: {
                         isShowingDevicePopover.toggle()
                     }) {
-                        HStack(spacing: 3.5) {
+                        HStack(spacing: 3) {
                             Image(systemName: currentDevice?.systemIconName ?? (defaultDevice?.systemIconName ?? "speaker.wave.2.fill"))
-                                .font(.system(size: 8))
+                                .font(.system(size: 7.5))
                             
                             Text(currentDevice?.name ?? "Default Output")
                                 .font(.system(size: 9.5, weight: .medium))
@@ -120,26 +114,26 @@ public struct AppVolumeRowView: View {
                                 .truncationMode(.tail)
                             
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 6.5, weight: .bold))
-                                .opacity(0.7)
+                                .font(.system(size: 6, weight: .bold))
+                                .opacity(0.65)
                         }
                         .foregroundColor(process.outputDeviceUID != nil ? Color.accentColor : (isDeviceHovered ? Color.primary : Color.primary.opacity(0.85)))
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 2.5)
                         .background(
                             Capsule(style: .continuous)
                                 .fill(
                                     process.outputDeviceUID != nil
-                                        ? Color.accentColor.opacity(isDeviceHovered ? 0.30 : 0.20)
-                                        : Color.white.opacity(isDeviceHovered ? 0.18 : 0.08)
+                                        ? Color.accentColor.opacity(isDeviceHovered ? 0.30 : 0.18)
+                                        : Color.white.opacity(isDeviceHovered ? 0.16 : 0.07)
                                 )
                                 .overlay(
                                     Capsule(style: .continuous)
                                         .stroke(
                                             process.outputDeviceUID != nil
-                                                ? Color.accentColor.opacity(isDeviceHovered ? 0.60 : 0.45)
-                                                : Color.white.opacity(isDeviceHovered ? 0.25 : 0.12),
-                                            lineWidth: 0.8
+                                                ? Color.accentColor.opacity(isDeviceHovered ? 0.55 : 0.35)
+                                                : Color.white.opacity(isDeviceHovered ? 0.22 : 0.10),
+                                            lineWidth: 0.7
                                         )
                                 )
                         )
@@ -167,30 +161,30 @@ public struct AppVolumeRowView: View {
                     }
                 }
             }
-            .frame(width: 110, alignment: .leading)
+            .frame(width: 106, alignment: .leading)
             
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             
-            // MARK: - 3. Mute Button (Glass circle with pointer)
+            // MARK: - 3. Mute Button (20x20)
             Button(action: onMuteToggle) {
-                Image(systemName: process.isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                Image(systemName: process.isMuted ? "speaker.slash.fill" : (localVolume == 0 ? "speaker.fill" : (localVolume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.2.fill")))
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(process.isMuted ? Color.red.opacity(0.9) : (isMuteHovered ? Color.primary : Color.secondary))
-                    .frame(width: 22, height: 22)
+                    .foregroundColor(process.isMuted ? Color.red : (isMuteHovered ? Color.primary : Color.secondary))
+                    .frame(width: 20, height: 20)
                     .background(
                         Circle()
                             .fill(
                                 process.isMuted
-                                    ? Color.red.opacity(isMuteHovered ? 0.30 : 0.18)
-                                    : (isMuteHovered ? Color.white.opacity(0.14) : Color.clear)
+                                    ? Color.red.opacity(isMuteHovered ? 0.28 : 0.16)
+                                    : (isMuteHovered ? Color.white.opacity(0.12) : Color.clear)
                             )
                             .overlay(
                                 Circle()
                                     .stroke(
                                         process.isMuted
-                                            ? Color.red.opacity(isMuteHovered ? 0.50 : 0.25)
-                                            : (isMuteHovered ? Color.white.opacity(0.20) : Color.clear),
-                                        lineWidth: 0.8
+                                            ? Color.red.opacity(isMuteHovered ? 0.45 : 0.22)
+                                            : (isMuteHovered ? Color.white.opacity(0.18) : Color.clear),
+                                        lineWidth: 0.6
                                     )
                             )
                     )
@@ -204,7 +198,7 @@ public struct AppVolumeRowView: View {
                 }
             }
             
-            // MARK: - 4. Volume Slider (Modern macOS Accent, 0% - 200%)
+            // MARK: - 4. Volume Slider (105x18)
             CustomSlider(
                 value: Binding(
                     get: { localVolume },
@@ -218,21 +212,22 @@ public struct AppVolumeRowView: View {
                 isMuted: process.isMuted,
                 accentColor: Color.accentColor
             )
-            .frame(width: 100, height: 18)
+            .frame(width: 105, height: 18)
             
-            // MARK: - 5. Percentage Label (e.g. 100%, 150%, 200%)
+            // MARK: - 5. Percentage Label (34)
             Text("\(Int(round(localVolume * 100)))%")
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                .foregroundColor(process.isMuted ? Color.secondary.opacity(0.5) : (localVolume > 1.0 ? Color.orange : Color.secondary))
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(process.isMuted ? Color.secondary.opacity(0.4) : (localVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
             
-            // MARK: - 6. Optional Remove Button (14pt)
+            // MARK: - 6. Optional Remove Button (14x14)
             Group {
                 if let onRemove = onRemove, isHovered {
                     Button(action: onRemove) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(isRemoveHovered ? Color.red.opacity(0.9) : Color.secondary.opacity(0.7))
+                            .foregroundColor(isRemoveHovered ? Color.red.opacity(0.9) : Color.secondary.opacity(0.65))
                             .frame(width: 14, height: 14)
                             .background(
                                 Circle()
@@ -254,13 +249,13 @@ public struct AppVolumeRowView: View {
             }
             .frame(width: 14, height: 14)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 9)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isHovered ? Color.white.opacity(0.07) : Color.white.opacity(0.025))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHovered ? Color.white.opacity(0.065) : Color.white.opacity(0.025))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(isHovered ? Color.white.opacity(0.14) : Color.white.opacity(0.05), lineWidth: 0.6)
                 )
         )
@@ -295,6 +290,6 @@ public struct AppVolumeRowView: View {
         )
     }
     .padding()
-    .frame(width: 380)
+    .frame(width: 390)
     .background(Color(red: 0.13, green: 0.13, blue: 0.14))
 }
