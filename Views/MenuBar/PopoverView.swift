@@ -29,17 +29,19 @@ public struct PopoverView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 18, height: 18)
                         .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
+                        .help("Mac Volume Mixer")
                 }
                 
                 Text("Sound")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
+                    .help("Kontrol Volume macOS")
                 
                 Spacer()
                 
                 // Master Output Device Capsule (Control Center Style)
                 Menu {
-                    Section("Output Device") {
+                    Section("Perangkat Output Utama") {
                         ForEach(viewModel.outputDevices) { device in
                             Button(action: {
                                 viewModel.selectOutputDevice(device)
@@ -79,7 +81,9 @@ public struct PopoverView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
+                .pointingHandOnHover()
                 .fixedSize()
+                .help("Klik untuk memilih perangkat output utama sistem...")
             }
             .padding(.horizontal, 14)
             .padding(.top, 12)
@@ -245,8 +249,9 @@ public struct PopoverView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
+                .pointingHandOnHover()
                 .fixedSize()
-                .help("Settings & Options")
+                .help("Pengaturan & Opsi mixer audio")
                 
                 Spacer()
                 
@@ -300,7 +305,9 @@ public struct PopoverView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
+                .pointingHandOnHover()
                 .fixedSize()
+                .help("Tambah aplikasi ke mixer volume")
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 10)
@@ -355,20 +362,60 @@ public struct PopoverView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(viewModel.isMasterMuted ? "Unmute System" : "Mute System")
+            .pointingHandOnHover()
+            .help(viewModel.isMasterMuted ? "Bunyikan (Unmute) Audio Sistem" : "Bisukan (Mute) Audio Sistem")
             
-            // Info: System Title & Output Device Subtitle
-            VStack(alignment: .leading, spacing: 1.5) {
+            // Info: System Title & Clickable Output Device Pill
+            VStack(alignment: .leading, spacing: 2) {
                 Text("System Audio")
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
+                    .help("Volume Audio Master Sistem")
                 
-                Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
-                    .font(.system(size: 9.5, weight: .regular))
-                    .foregroundColor(Color.secondary.opacity(0.75))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                Menu {
+                    Section("Perangkat Output Utama") {
+                        ForEach(viewModel.outputDevices) { device in
+                            Button(action: {
+                                viewModel.selectOutputDevice(device)
+                            }) {
+                                HStack {
+                                    Text(device.name)
+                                    if device.id == viewModel.selectedOutputDevice?.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2.fill")
+                            .font(.system(size: 7.5))
+                        Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
+                            .font(.system(size: 9.5, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 6, weight: .bold))
+                            .opacity(0.6)
+                    }
+                    .foregroundColor(Color.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.06))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                            )
+                    )
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .pointingHandOnHover()
+                .help("Klik untuk memilih perangkat output audio sistem...")
             }
             .frame(width: 104, alignment: .leading)
             
@@ -386,12 +433,14 @@ public struct PopoverView: View {
                 accentColor: Color.accentColor
             )
             .frame(width: 100, height: 18)
+            .help("Atur volume master sistem (0% - 200%, klik ganda untuk reset 100%)")
             
             // Percentage Label
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.5) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
                 .frame(width: 34, alignment: .trailing)
+                .help("Volume master sistem: \(Int(round(viewModel.masterVolume * 100)))%")
             
             // Placeholder alignment spacing matching remove button
             Color.clear
@@ -429,6 +478,7 @@ public struct PopoverView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color.orange)
             .controlSize(.mini)
+            .pointingHandOnHover()
             
             Button("Restart") {
                 viewModel.restartApp()
@@ -436,6 +486,7 @@ public struct PopoverView: View {
             .font(.system(size: 9.5, weight: .medium))
             .buttonStyle(.bordered)
             .controlSize(.mini)
+            .pointingHandOnHover()
         }
         .padding(7)
         .background(
