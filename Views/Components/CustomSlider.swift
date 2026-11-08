@@ -93,8 +93,10 @@ public final class MacSliderNSView: NSView {
     public var onValueChanged: ((Float) -> Void)?
     public var onEditingChanged: ((Bool) -> Void)?
     
-    private let knobRadius: CGFloat = 6.5
-    private let trackHeight: CGFloat = 5.5
+    // Native macOS Control Center capsule slider dimensions
+    private let knobWidth: CGFloat = 8.0
+    private let knobHeight: CGFloat = 16.0
+    private let trackHeight: CGFloat = 6.0
     private var isDragging: Bool = false
     private var isHovered: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
@@ -147,9 +149,10 @@ public final class MacSliderNSView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
         
-        let trackWidth = bounds.width - (knobRadius * 2)
+        let halfKnobW = knobWidth / 2
+        let trackWidth = bounds.width - knobWidth
         let trackY = (bounds.height - trackHeight) / 2
-        let trackRect = CGRect(x: knobRadius, y: trackY, width: max(0, trackWidth), height: trackHeight)
+        let trackRect = CGRect(x: halfKnobW, y: trackY, width: max(0, trackWidth), height: trackHeight)
         let cornerR = trackHeight / 2
         let bgPath = CGPath(roundedRect: trackRect, cornerWidth: cornerR, cornerHeight: cornerR, transform: nil)
         
@@ -179,7 +182,7 @@ public final class MacSliderNSView: NSView {
         // 2. GLASS UNITY TICK NOTCH (100% / 1.0 Baseline Mark)
         // ---------------------------------------------------------
         let baselineNorm = CGFloat(baselineValue / maxValue)
-        let tickX = knobRadius + (trackWidth * baselineNorm)
+        let tickX = halfKnobW + (trackWidth * baselineNorm)
         let tickHeight = trackHeight - 1.5
         let tickY = (bounds.height - tickHeight) / 2
         let tickRect = CGRect(x: tickX - 0.75, y: tickY, width: 1.5, height: tickHeight)
@@ -199,7 +202,7 @@ public final class MacSliderNSView: NSView {
         
         if effectiveProgress > 0 {
             let activeWidth = max(trackHeight, trackWidth * effectiveProgress)
-            let activeRect = CGRect(x: knobRadius, y: trackY, width: activeWidth, height: trackHeight)
+            let activeRect = CGRect(x: halfKnobW, y: trackY, width: activeWidth, height: trackHeight)
             let activePath = CGPath(roundedRect: activeRect, cornerWidth: cornerR, cornerHeight: cornerR, transform: nil)
             
             context.saveGState()
@@ -258,47 +261,42 @@ public final class MacSliderNSView: NSView {
         }
         
         // ---------------------------------------------------------
-        // 4. APPLE LIQUID GLASS KNOB (Aesthetic Frosted Glass Capsule / Lens Knob)
+        // 4. APPLE NATIVE OVAL CAPSULE THUMB (macOS Sound / Control Center Style)
         // ---------------------------------------------------------
-        let knobX = knobRadius + (trackWidth * effectiveProgress)
+        let knobX = halfKnobW + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
-        let currentKnobR = isDragging ? knobRadius + 1.0 : (isHovered ? knobRadius + 0.5 : knobRadius)
-        let knobDiameter = currentKnobR * 2
-        let knobRect = CGRect(x: knobX - currentKnobR, y: knobCenterY - currentKnobR, width: knobDiameter, height: knobDiameter)
+        
+        // Elegant vertical oval capsule like macOS Control Center & System Settings
+        let currentW: CGFloat = isDragging ? (knobWidth + 1.0) : (isHovered ? (knobWidth + 0.5) : knobWidth)
+        let currentH: CGFloat = isDragging ? (knobHeight + 1.5) : (isHovered ? (knobHeight + 0.5) : knobHeight)
+        let knobRect = CGRect(x: knobX - (currentW / 2), y: knobCenterY - (currentH / 2), width: currentW, height: currentH)
+        let capsuleCorner = currentW / 2
+        let capsulePath = CGPath(roundedRect: knobRect, cornerWidth: capsuleCorner, cornerHeight: capsuleCorner, transform: nil)
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let activeAccent = (value > baselineValue ? boostColor : accentColor)
         
-        // A. Multi-layer Realistic Elevation & Soft Colored Shadow
+        // A. Multi-layer Tactile Drop Shadow
         context.saveGState()
-        // Deep natural ambient shadow
         context.setShadow(
             offset: CGSize(width: 0, height: isDragging ? -2.2 : -1.2),
-            blur: isDragging ? 5.5 : 3.5,
-            color: NSColor.black.withAlphaComponent(isDragging ? 0.45 : 0.32).cgColor
+            blur: isDragging ? 5.0 : 3.0,
+            color: NSColor.black.withAlphaComponent(isDragging ? 0.42 : 0.30).cgColor
         )
-        // Subtle colored glow reflecting the volume color
-        if !isMuted {
-            context.setShadow(
-                offset: CGSize(width: 0, height: -0.5),
-                blur: isDragging ? 6.0 : (isHovered ? 4.0 : 2.0),
-                color: activeAccent.withAlphaComponent(isDragging ? 0.40 : (isHovered ? 0.25 : 0.12)).cgColor
-            )
-        }
         context.setFillColor(NSColor(white: 0.98, alpha: 1.0).cgColor)
-        context.fillEllipse(in: knobRect)
+        context.addPath(capsulePath)
+        context.fillPath()
         context.restoreGState()
         
-        // B. Frosted Glass Body Gradient (Lens curvature reflection)
+        // B. Pure Apple Frosted Capsule Gradient (Smooth vertical sheen)
         context.saveGState()
-        context.addEllipse(in: knobRect)
+        context.addPath(capsulePath)
         context.clip()
         let knobGradientColors = [
             NSColor(white: 1.0, alpha: 1.0).cgColor,
             NSColor(white: 0.96, alpha: 1.0).cgColor,
-            NSColor(white: 0.88, alpha: 1.0).cgColor
+            NSColor(white: 0.90, alpha: 1.0).cgColor
         ] as CFArray
-        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 0.55, 1.0]) {
+        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 0.5, 1.0]) {
             context.drawLinearGradient(
                 knobGrad,
                 start: CGPoint(x: knobRect.midX, y: knobRect.minY),
@@ -307,57 +305,40 @@ public final class MacSliderNSView: NSView {
             )
         }
         
-        // Inner Glass Lens Top Sheen
-        let lensSheenRect = CGRect(x: knobRect.minX + 1.2, y: knobRect.minY + 0.8, width: knobDiameter - 2.4, height: (knobDiameter - 2.4) * 0.45)
-        let lensColors = [
-            NSColor(white: 1.0, alpha: 0.70).cgColor,
-            NSColor(white: 1.0, alpha: 0.0).cgColor
+        // Subtle top specular highlight on upper half
+        let topSheenRect = CGRect(x: knobRect.minX + 0.6, y: knobRect.minY + 0.5, width: currentW - 1.2, height: (currentH - 1.0) * 0.45)
+        let topSheenPath = CGPath(roundedRect: topSheenRect, cornerWidth: (currentW - 1.2) / 2, cornerHeight: (currentW - 1.2) / 2, transform: nil)
+        context.addPath(topSheenPath)
+        let topSheenColors = [
+            NSColor(white: 1.0, alpha: 0.65).cgColor,
+            NSColor(white: 1.0, alpha: 0.05).cgColor
         ] as CFArray
-        if let lensGrad = CGGradient(colorsSpace: colorSpace, colors: lensColors, locations: [0.0, 1.0]) {
+        if let sheenGrad = CGGradient(colorsSpace: colorSpace, colors: topSheenColors, locations: [0.0, 1.0]) {
+            context.clip()
             context.drawLinearGradient(
-                lensGrad,
-                start: CGPoint(x: lensSheenRect.midX, y: lensSheenRect.minY),
-                end: CGPoint(x: lensSheenRect.midX, y: lensSheenRect.maxY),
+                sheenGrad,
+                start: CGPoint(x: topSheenRect.midX, y: topSheenRect.minY),
+                end: CGPoint(x: topSheenRect.midX, y: topSheenRect.maxY),
                 options: []
             )
         }
         context.restoreGState()
         
-        // C. Sleek Inner Dynamic Ring Indicator (Jewel / Precision Core)
-        let coreRadius: CGFloat = isDragging ? 2.8 : (isHovered ? 2.5 : 2.2)
-        let coreRect = CGRect(
-            x: knobX - coreRadius,
-            y: knobCenterY - coreRadius,
-            width: coreRadius * 2,
-            height: coreRadius * 2
-        )
+        // C. Clean Specular Perimeter Stroke
         context.saveGState()
-        if isMuted {
-            context.setFillColor(NSColor(white: 0.65, alpha: 0.80).cgColor)
-        } else {
-            // Radial core tint matching the active volume state
-            let coreTint = activeAccent.withAlphaComponent(isDragging ? 1.0 : (isHovered ? 0.90 : 0.75))
-            context.setFillColor(coreTint.cgColor)
-        }
-        context.fillEllipse(in: coreRect)
-        
-        // Specular dot on core
-        let coreDotRect = CGRect(x: knobX - 0.7, y: knobCenterY - coreRadius + 0.5, width: 1.4, height: 1.0)
-        context.setFillColor(NSColor(white: 1.0, alpha: 0.85).cgColor)
-        context.fillEllipse(in: coreDotRect)
-        context.restoreGState()
-        
-        // D. Precision Outer Specular Glass Rim & Subtle Dark Lip
-        context.saveGState()
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.15).cgColor)
+        context.addPath(capsulePath)
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.14).cgColor)
         context.setLineWidth(0.6)
-        context.strokeEllipse(in: knobRect)
+        context.strokePath()
         
-        // Top Crescent Highlight
-        let innerHighlightRect = knobRect.insetBy(dx: 0.6, dy: 0.6)
-        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.75).cgColor)
+        // Inner white light rim
+        let innerRimRect = knobRect.insetBy(dx: 0.6, dy: 0.6)
+        let innerRimCorner = max(1.0, (currentW - 1.2) / 2)
+        let innerRimPath = CGPath(roundedRect: innerRimRect, cornerWidth: innerRimCorner, cornerHeight: innerRimCorner, transform: nil)
+        context.addPath(innerRimPath)
+        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.70).cgColor)
         context.setLineWidth(0.5)
-        context.strokeEllipse(in: innerHighlightRect)
+        context.strokePath()
         context.restoreGState()
     }
     
@@ -399,10 +380,11 @@ public final class MacSliderNSView: NSView {
     
     private func updateValue(from event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        let trackWidth = bounds.width - (knobRadius * 2)
+        let halfKnobW = knobWidth / 2
+        let trackWidth = bounds.width - knobWidth
         guard trackWidth > 0 else { return }
         
-        let rawProgress = (location.x - knobRadius) / trackWidth
+        let rawProgress = (location.x - halfKnobW) / trackWidth
         var calcVal = Float(rawProgress) * maxValue
         
         // Magnet Snap ke 100% (baselineValue) jika berada di radius +/- 4%
