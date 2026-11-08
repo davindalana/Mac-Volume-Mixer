@@ -180,14 +180,14 @@ public final class MacSliderNSView: NSView {
         // ---------------------------------------------------------
         let baselineNorm = CGFloat(baselineValue / maxValue)
         let tickX = knobRadius + (trackWidth * baselineNorm)
-        let tickHeight = trackHeight + 3.0
+        let tickHeight = trackHeight - 1.5
         let tickY = (bounds.height - tickHeight) / 2
         let tickRect = CGRect(x: tickX - 0.75, y: tickY, width: 1.5, height: tickHeight)
         let tickPath = CGPath(roundedRect: tickRect, cornerWidth: 0.75, cornerHeight: 0.75, transform: nil)
         
         context.saveGState()
         context.addPath(tickPath)
-        context.setFillColor(NSColor(white: 1.0, alpha: isHovered ? 0.45 : 0.30).cgColor)
+        context.setFillColor(NSColor(white: 1.0, alpha: isHovered ? 0.35 : 0.22).cgColor)
         context.fillPath()
         context.restoreGState()
         
@@ -258,35 +258,47 @@ public final class MacSliderNSView: NSView {
         }
         
         // ---------------------------------------------------------
-        // 4. APPLE LIQUID GLASS KNOB (Frosted White Pearl Knob with Specular Rim)
+        // 4. APPLE LIQUID GLASS KNOB (Aesthetic Frosted Glass Capsule / Lens Knob)
         // ---------------------------------------------------------
         let knobX = knobRadius + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
-        let currentKnobR = isDragging ? knobRadius + 0.8 : (isHovered ? knobRadius + 0.4 : knobRadius)
+        let currentKnobR = isDragging ? knobRadius + 1.0 : (isHovered ? knobRadius + 0.5 : knobRadius)
         let knobDiameter = currentKnobR * 2
         let knobRect = CGRect(x: knobX - currentKnobR, y: knobCenterY - currentKnobR, width: knobDiameter, height: knobDiameter)
         
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let activeAccent = (value > baselineValue ? boostColor : accentColor)
+        
+        // A. Multi-layer Realistic Elevation & Soft Colored Shadow
         context.saveGState()
-        // Deep ambient drop shadow (macOS Sequoia tactile elevation)
+        // Deep natural ambient shadow
         context.setShadow(
-            offset: CGSize(width: 0, height: isDragging ? -1.8 : -1.2),
-            blur: isDragging ? 4.5 : 3.0,
-            color: NSColor.black.withAlphaComponent(isDragging ? 0.45 : 0.35).cgColor
+            offset: CGSize(width: 0, height: isDragging ? -2.2 : -1.2),
+            blur: isDragging ? 5.5 : 3.5,
+            color: NSColor.black.withAlphaComponent(isDragging ? 0.45 : 0.32).cgColor
         )
-        context.setFillColor(NSColor.white.cgColor)
+        // Subtle colored glow reflecting the volume color
+        if !isMuted {
+            context.setShadow(
+                offset: CGSize(width: 0, height: -0.5),
+                blur: isDragging ? 6.0 : (isHovered ? 4.0 : 2.0),
+                color: activeAccent.withAlphaComponent(isDragging ? 0.40 : (isHovered ? 0.25 : 0.12)).cgColor
+            )
+        }
+        context.setFillColor(NSColor(white: 0.98, alpha: 1.0).cgColor)
         context.fillEllipse(in: knobRect)
         context.restoreGState()
         
-        // Internal subtle pearl gradient on knob
+        // B. Frosted Glass Body Gradient (Lens curvature reflection)
         context.saveGState()
         context.addEllipse(in: knobRect)
         context.clip()
         let knobGradientColors = [
             NSColor(white: 1.0, alpha: 1.0).cgColor,
-            NSColor(white: 0.94, alpha: 1.0).cgColor
+            NSColor(white: 0.96, alpha: 1.0).cgColor,
+            NSColor(white: 0.88, alpha: 1.0).cgColor
         ] as CFArray
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 1.0]) {
+        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 0.55, 1.0]) {
             context.drawLinearGradient(
                 knobGrad,
                 start: CGPoint(x: knobRect.midX, y: knobRect.minY),
@@ -294,19 +306,56 @@ public final class MacSliderNSView: NSView {
                 options: []
             )
         }
+        
+        // Inner Glass Lens Top Sheen
+        let lensSheenRect = CGRect(x: knobRect.minX + 1.2, y: knobRect.minY + 0.8, width: knobDiameter - 2.4, height: (knobDiameter - 2.4) * 0.45)
+        let lensColors = [
+            NSColor(white: 1.0, alpha: 0.70).cgColor,
+            NSColor(white: 1.0, alpha: 0.0).cgColor
+        ] as CFArray
+        if let lensGrad = CGGradient(colorsSpace: colorSpace, colors: lensColors, locations: [0.0, 1.0]) {
+            context.drawLinearGradient(
+                lensGrad,
+                start: CGPoint(x: lensSheenRect.midX, y: lensSheenRect.minY),
+                end: CGPoint(x: lensSheenRect.midX, y: lensSheenRect.maxY),
+                options: []
+            )
+        }
         context.restoreGState()
         
-        // Crisp glass outer rim
+        // C. Sleek Inner Dynamic Ring Indicator (Jewel / Precision Core)
+        let coreRadius: CGFloat = isDragging ? 2.8 : (isHovered ? 2.5 : 2.2)
+        let coreRect = CGRect(
+            x: knobX - coreRadius,
+            y: knobCenterY - coreRadius,
+            width: coreRadius * 2,
+            height: coreRadius * 2
+        )
         context.saveGState()
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.16).cgColor)
+        if isMuted {
+            context.setFillColor(NSColor(white: 0.65, alpha: 0.80).cgColor)
+        } else {
+            // Radial core tint matching the active volume state
+            let coreTint = activeAccent.withAlphaComponent(isDragging ? 1.0 : (isHovered ? 0.90 : 0.75))
+            context.setFillColor(coreTint.cgColor)
+        }
+        context.fillEllipse(in: coreRect)
+        
+        // Specular dot on core
+        let coreDotRect = CGRect(x: knobX - 0.7, y: knobCenterY - coreRadius + 0.5, width: 1.4, height: 1.0)
+        context.setFillColor(NSColor(white: 1.0, alpha: 0.85).cgColor)
+        context.fillEllipse(in: coreDotRect)
+        context.restoreGState()
+        
+        // D. Precision Outer Specular Glass Rim & Subtle Dark Lip
+        context.saveGState()
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.15).cgColor)
         context.setLineWidth(0.6)
         context.strokeEllipse(in: knobRect)
-        context.restoreGState()
         
-        // Top specular crescent highlight
-        context.saveGState()
-        let innerHighlightRect = knobRect.insetBy(dx: 0.8, dy: 0.8)
-        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.60).cgColor)
+        // Top Crescent Highlight
+        let innerHighlightRect = knobRect.insetBy(dx: 0.6, dy: 0.6)
+        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.75).cgColor)
         context.setLineWidth(0.5)
         context.strokeEllipse(in: innerHighlightRect)
         context.restoreGState()
