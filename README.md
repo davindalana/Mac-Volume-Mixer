@@ -33,15 +33,17 @@ MacVolumeMixer runs quietly in the macOS Menu Bar (`MenuBarExtra`) providing rea
 
 ## 📦 Installation & Download
 
-### Option 1: Download Pre-built Release (Recommended)
-1. Download the latest `MacVolumeMixer-v0.4.0-beta.zip` from the [GitHub Releases](https://github.com/davindalana/Mac-Volume-Mixer/releases) page.
-2. Unzip the file and move `MacVolumeMixer.app` to your `/Applications` folder:
-   ```bash
-   mv MacVolumeMixer.app /Applications/
-   ```
-3. Open `MacVolumeMixer.app`.
+### Option 1: Apple Disk Image (.dmg) (Recommended)
+1. Download the latest `MacVolumeMixer-v0.4.0-beta.dmg` from the [GitHub Releases](https://github.com/davindalana/Mac-Volume-Mixer/releases) page.
+2. Double-click the `.dmg` file to mount it.
+3. Drag and drop **MacVolumeMixer** into the **Applications** folder shortcut.
+4. Launch **MacVolumeMixer** from Applications or Spotlight.
 
-### Option 2: Build from Source
+### Option 2: Zip Archive
+1. Download `MacVolumeMixer-v0.4.0-beta.zip` from [GitHub Releases](https://github.com/davindalana/Mac-Volume-Mixer/releases).
+2. Extract the archive and move `MacVolumeMixer.app` to `/Applications`.
+
+### Option 3: Build from Source
 Ensure you have Xcode 15.2+ and Swift 5.9+ installed:
 ```bash
 git clone https://github.com/davindalana/Mac-Volume-Mixer.git

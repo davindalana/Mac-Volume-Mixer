@@ -20,10 +20,12 @@ jobs:
           chmod +x bundle_app.sh
           ./bundle_app.sh
 
-      - name: Create Release Zip
+      - name: Create Release Zip & DMG
         run: |
-          ditto -c -k --keepParent /Applications/MacVolumeMixer.app ./MacVolumeMixer-${{ github.ref_name }}.zip
-          shasum -a 256 ./MacVolumeMixer-${{ github.ref_name }}.zip > checksum.txt
+          chmod +x create_dmg.sh
+          ./create_dmg.sh
+          ditto -c -k --keepParent /Applications/MacVolumeMixer.app ./dist/MacVolumeMixer-${{ github.ref_name }}.zip
+          shasum -a 256 dist/* > checksum.txt
           cat checksum.txt
 
       - name: Create GitHub Release
@@ -33,7 +35,8 @@ jobs:
           body_path: RELEASE_NOTES.md
           prerelease: true
           files: |
-            MacVolumeMixer-${{ github.ref_name }}.zip
+            dist/*
             checksum.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

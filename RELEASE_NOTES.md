@@ -32,12 +32,19 @@ This release brings complete Apple-grade UI alignment, hardware-accelerated DSP 
 
 | File | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
+| `MacVolumeMixer-v0.4.0-beta.dmg` | ~961 KB | `874f0387fcd9ab7495b36aa0ecf7e0e5e918b801a26b62f7bc3e4b866c80456c` |
 | `MacVolumeMixer-v0.4.0-beta.zip` | ~953 KB | `1f002a32f39fd95ba30c248645242f03ca10c227c7e1fcfee8526c206b3aeb72` |
 
 ---
 
 ### 📥 Installation
 
+#### Via Apple Disk Image (`.dmg`):
+1. Download and open `MacVolumeMixer-v0.4.0-beta.dmg`.
+2. Drag `MacVolumeMixer.app` into the `Applications` folder shortcut.
+3. Open `MacVolumeMixer.app` and grant audio permissions in **System Settings > Privacy & Security > Screen & System Audio Recording** when prompted.
+
+#### Via Zip Archive:
 1. Download `MacVolumeMixer-v0.4.0-beta.zip`.
 2. Extract the archive and drag `MacVolumeMixer.app` into `/Applications`.
-3. Open `MacVolumeMixer.app` and grant audio permissions in **System Settings > Privacy & Security > Screen & System Audio Recording** when prompted.
+
