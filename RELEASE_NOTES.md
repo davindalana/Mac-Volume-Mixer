@@ -32,8 +32,8 @@ This release brings complete Apple-grade UI alignment, hardware-accelerated DSP 
 
 | File | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| `MacVolumeMixer-v0.4.0-beta.dmg` | ~961 KB | `874f0387fcd9ab7495b36aa0ecf7e0e5e918b801a26b62f7bc3e4b866c80456c` |
-| `MacVolumeMixer-v0.4.0-beta.zip` | ~953 KB | `1f002a32f39fd95ba30c248645242f03ca10c227c7e1fcfee8526c206b3aeb72` |
+| `MacVolumeMixer-v0.4.0-beta.dmg` | ~963 KB | `bbf6bc548c448794922dc79acf343fcbc7ea5ae7c0e12613e6acf2a14a2a8960` |
+| `MacVolumeMixer-v0.4.0-beta.zip` | ~955 KB | `4f387ef30d69335f61eb6401382d4847c08febf36c83f6067f3eef818e93311d` |
 
 ---
 

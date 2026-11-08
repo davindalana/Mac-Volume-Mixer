@@ -1,9 +1,11 @@
 import SwiftUI
 import AppKit
 
-/// Slider kustom dengan estetika macOS Sonoma & Sequoia persis seperti Control Center & SoundSource.
+/// Slider kustom berpenampilan Liquid Glass khas macOS Sonoma & Sequoia.
 /// Mendukung rentang volume hingga 200% (2.0) dengan titik dasar 100% (1.0) di tengah,
-/// dilengkapi notch unity gain pada 100%, magnet snap, double-click reset ke 100%, dan scroll wheel.
+/// dilengkapi visual Liquid Glass: track frosted glass translucency, specular highlight,
+/// dual-tone gradient fill (Apple Accent Blue & Warm Amber Boost), glass unity notch,
+/// Apple frosted circular knob dengan multi-layer shadow, magnet snap, double-click reset, dan scroll wheel.
 public struct CustomSlider: NSViewRepresentable {
     @Binding public var value: Float
     public var maxValue: Float
@@ -53,7 +55,7 @@ public struct CustomSlider: NSViewRepresentable {
     }
 }
 
-/// Custom NSView yang menangani rendering dan event mouse langsung di tingkat AppKit dengan kualitas Apple-native.
+/// Custom NSView dengan rendering Liquid Glass (Frosted Glass Capsule, Specular Rim, Ambient Glow)
 public final class MacSliderNSView: NSView {
     public var maxValue: Float = 2.0 {
         didSet { needsDisplay = true }
@@ -83,17 +85,18 @@ public final class MacSliderNSView: NSView {
         didSet { needsDisplay = true }
     }
     
-    public var boostColor: NSColor = NSColor(red: 1.0, green: 0.62, blue: 0.12, alpha: 1.0) {
+    // Warm Liquid Amber untuk volume boost (> 100%)
+    public var boostColor: NSColor = NSColor(red: 1.0, green: 0.60, blue: 0.14, alpha: 1.0) {
         didSet { needsDisplay = true }
     }
     
-    public var trackColor: NSColor = NSColor(white: 0.28, alpha: 0.50)
     public var onValueChanged: ((Float) -> Void)?
     public var onEditingChanged: ((Bool) -> Void)?
     
     private let knobRadius: CGFloat = 6.5
-    private let trackHeight: CGFloat = 4.5
+    private let trackHeight: CGFloat = 5.5
     private var isDragging: Bool = false
+    private var isHovered: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
     
     public override var isFlipped: Bool { true }
@@ -126,6 +129,16 @@ public final class MacSliderNSView: NSView {
         addTrackingArea(trackingArea)
     }
     
+    public override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        needsDisplay = true
+    }
+    
+    public override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        needsDisplay = true
+    }
+    
     public override func cursorUpdate(with event: NSEvent) {
         NSCursor.pointingHand.set()
     }
@@ -137,63 +150,165 @@ public final class MacSliderNSView: NSView {
         let trackWidth = bounds.width - (knobRadius * 2)
         let trackY = (bounds.height - trackHeight) / 2
         let trackRect = CGRect(x: knobRadius, y: trackY, width: max(0, trackWidth), height: trackHeight)
+        let cornerR = trackHeight / 2
+        let bgPath = CGPath(roundedRect: trackRect, cornerWidth: cornerR, cornerHeight: cornerR, transform: nil)
         
-        // 1. Background Groove Track
-        context.setFillColor(trackColor.cgColor)
-        let bgPath = CGPath(roundedRect: trackRect, cornerWidth: trackHeight / 2, cornerHeight: trackHeight / 2, transform: nil)
+        // ---------------------------------------------------------
+        // 1. LIQUID GLASS BACKGROUND TROUGH (Frosted Translucent Groove)
+        // ---------------------------------------------------------
+        context.saveGState()
+        // Translucent dark-glass base fill
         context.addPath(bgPath)
+        context.setFillColor(NSColor(white: 0.12, alpha: isHovered ? 0.65 : 0.50).cgColor)
         context.fillPath()
         
-        // Subtle inner stroke rim
-        context.saveGState()
+        // Subtle inner ambient shadow inside trough
         context.addPath(bgPath)
-        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.08).cgColor)
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.35).cgColor)
+        context.setLineWidth(0.8)
+        context.strokePath()
+        
+        // Glass specular top-edge illumination (Frosted Glass Rim)
+        context.addPath(bgPath)
+        context.setStrokeColor(NSColor(white: 1.0, alpha: isHovered ? 0.20 : 0.12).cgColor)
         context.setLineWidth(0.6)
         context.strokePath()
         context.restoreGState()
         
-        // 2. Baseline Unity Notch pada 100% (1.0)
+        // ---------------------------------------------------------
+        // 2. GLASS UNITY TICK NOTCH (100% / 1.0 Baseline Mark)
+        // ---------------------------------------------------------
         let baselineNorm = CGFloat(baselineValue / maxValue)
         let tickX = knobRadius + (trackWidth * baselineNorm)
         let tickHeight = trackHeight + 3.0
         let tickY = (bounds.height - tickHeight) / 2
         let tickRect = CGRect(x: tickX - 0.75, y: tickY, width: 1.5, height: tickHeight)
         let tickPath = CGPath(roundedRect: tickRect, cornerWidth: 0.75, cornerHeight: 0.75, transform: nil)
-        context.setFillColor(NSColor(white: 1.0, alpha: 0.35).cgColor)
-        context.addPath(tickPath)
-        context.fillPath()
         
-        // 3. Active Progress Track
+        context.saveGState()
+        context.addPath(tickPath)
+        context.setFillColor(NSColor(white: 1.0, alpha: isHovered ? 0.45 : 0.30).cgColor)
+        context.fillPath()
+        context.restoreGState()
+        
+        // ---------------------------------------------------------
+        // 3. LIQUID GLASS ACTIVE PROGRESS FILL (Dynamic Glowing Capsule)
+        // ---------------------------------------------------------
         let progress = CGFloat(max(0.0, min(maxValue, value)) / maxValue)
         let effectiveProgress = isMuted ? 0.0 : progress
         
         if effectiveProgress > 0 {
-            let activeWidth = max(0, trackWidth * effectiveProgress)
+            let activeWidth = max(trackHeight, trackWidth * effectiveProgress)
             let activeRect = CGRect(x: knobRadius, y: trackY, width: activeWidth, height: trackHeight)
-            let activePath = CGPath(roundedRect: activeRect, cornerWidth: trackHeight / 2, cornerHeight: trackHeight / 2, transform: nil)
+            let activePath = CGPath(roundedRect: activeRect, cornerWidth: cornerR, cornerHeight: cornerR, transform: nil)
             
-            let fillColor = isMuted ? trackColor : (value > baselineValue ? boostColor : accentColor)
-            context.setFillColor(fillColor.cgColor)
+            context.saveGState()
             context.addPath(activePath)
-            context.fillPath()
+            context.clip()
+            
+            if isMuted {
+                // Dimmed muted fill
+                context.setFillColor(NSColor(white: 0.30, alpha: 0.40).cgColor)
+                context.fill(activeRect)
+            } else {
+                // Vibrant Liquid Gradient
+                let isBoosted = value > baselineValue
+                let startColor = accentColor.withAlphaComponent(0.95).cgColor
+                let endColor = (isBoosted ? boostColor : accentColor).withAlphaComponent(1.0).cgColor
+                
+                let colors = [startColor, endColor] as CFArray
+                let colorSpace = CGColorSpaceCreateDeviceRGB()
+                if let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: [0.0, 1.0]) {
+                    context.drawLinearGradient(
+                        gradient,
+                        start: CGPoint(x: activeRect.minX, y: activeRect.midY),
+                        end: CGPoint(x: activeRect.maxX, y: activeRect.midY),
+                        options: []
+                    )
+                }
+                
+                // Specular Glass Sheen Highlight on Top Half
+                let sheenRect = CGRect(x: activeRect.minX, y: activeRect.minY, width: activeRect.width, height: activeRect.height * 0.45)
+                let sheenColors = [
+                    NSColor(white: 1.0, alpha: 0.35).cgColor,
+                    NSColor(white: 1.0, alpha: 0.05).cgColor
+                ] as CFArray
+                if let sheenGradient = CGGradient(colorsSpace: colorSpace, colors: sheenColors, locations: [0.0, 1.0]) {
+                    context.drawLinearGradient(
+                        sheenGradient,
+                        start: CGPoint(x: sheenRect.midX, y: sheenRect.minY),
+                        end: CGPoint(x: sheenRect.midX, y: sheenRect.maxY),
+                        options: []
+                    )
+                }
+            }
+            context.restoreGState()
+            
+            // Soft Outer Ambient Glow if dragging or hovered
+            if isDragging && !isMuted {
+                context.saveGState()
+                context.addPath(activePath)
+                let glowColor = (value > baselineValue ? boostColor : accentColor).withAlphaComponent(0.40).cgColor
+                context.setShadow(offset: .zero, blur: 4.0, color: glowColor)
+                context.setStrokeColor(NSColor(white: 1.0, alpha: 0.40).cgColor)
+                context.setLineWidth(0.6)
+                context.strokePath()
+                context.restoreGState()
+            }
         }
         
-        // 4. Apple-style White Knob with Soft Drop Shadow & Specular Rim
+        // ---------------------------------------------------------
+        // 4. APPLE LIQUID GLASS KNOB (Frosted White Pearl Knob with Specular Rim)
+        // ---------------------------------------------------------
         let knobX = knobRadius + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
-        let knobDiameter = knobRadius * 2
-        let knobRect = CGRect(x: knobX - knobRadius, y: knobCenterY - knobRadius, width: knobDiameter, height: knobDiameter)
+        let currentKnobR = isDragging ? knobRadius + 0.8 : (isHovered ? knobRadius + 0.4 : knobRadius)
+        let knobDiameter = currentKnobR * 2
+        let knobRect = CGRect(x: knobX - currentKnobR, y: knobCenterY - currentKnobR, width: knobDiameter, height: knobDiameter)
         
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -1.0), blur: 2.5, color: NSColor.black.withAlphaComponent(0.35).cgColor)
+        // Deep ambient drop shadow (macOS Sequoia tactile elevation)
+        context.setShadow(
+            offset: CGSize(width: 0, height: isDragging ? -1.8 : -1.2),
+            blur: isDragging ? 4.5 : 3.0,
+            color: NSColor.black.withAlphaComponent(isDragging ? 0.45 : 0.35).cgColor
+        )
         context.setFillColor(NSColor.white.cgColor)
         context.fillEllipse(in: knobRect)
         context.restoreGState()
         
+        // Internal subtle pearl gradient on knob
         context.saveGState()
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.14).cgColor)
-        context.setLineWidth(0.5)
+        context.addEllipse(in: knobRect)
+        context.clip()
+        let knobGradientColors = [
+            NSColor(white: 1.0, alpha: 1.0).cgColor,
+            NSColor(white: 0.94, alpha: 1.0).cgColor
+        ] as CFArray
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 1.0]) {
+            context.drawLinearGradient(
+                knobGrad,
+                start: CGPoint(x: knobRect.midX, y: knobRect.minY),
+                end: CGPoint(x: knobRect.midX, y: knobRect.maxY),
+                options: []
+            )
+        }
+        context.restoreGState()
+        
+        // Crisp glass outer rim
+        context.saveGState()
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.16).cgColor)
+        context.setLineWidth(0.6)
         context.strokeEllipse(in: knobRect)
+        context.restoreGState()
+        
+        // Top specular crescent highlight
+        context.saveGState()
+        let innerHighlightRect = knobRect.insetBy(dx: 0.8, dy: 0.8)
+        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.60).cgColor)
+        context.setLineWidth(0.5)
+        context.strokeEllipse(in: innerHighlightRect)
         context.restoreGState()
     }
     
@@ -206,6 +321,7 @@ public final class MacSliderNSView: NSView {
         }
         
         isDragging = true
+        needsDisplay = true
         onEditingChanged?(true)
         updateValue(from: event)
     }
@@ -218,6 +334,7 @@ public final class MacSliderNSView: NSView {
     public override func mouseUp(with event: NSEvent) {
         if isDragging {
             isDragging = false
+            needsDisplay = true
             onEditingChanged?(false)
         }
     }

@@ -21,7 +21,10 @@ let package = Package(
                 "App/designated_requirement.txt",
                 "App/AppIcon.icns",
                 "README.md",
-                "bundle_app.sh"
+                "RELEASE_NOTES.md",
+                "bundle_app.sh",
+                "create_dmg.sh",
+                "dist"
             ],
             sources: [
                 "App/MacVolumeMixerApp.swift",
