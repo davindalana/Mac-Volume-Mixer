@@ -446,7 +446,12 @@ public struct PopoverView: View {
             Text("\(Int(round(viewModel.masterVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.4) : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary))
+                .foregroundColor(
+                    viewModel.isMasterMuted
+                        ? Color.secondary.opacity(0.4)
+                        : (viewModel.masterVolume > 1.0 ? Color.orange : Color.secondary)
+                )
+                .animation(.easeInOut(duration: 0.18), value: viewModel.masterVolume > 1.0)
                 .frame(width: 34, alignment: .trailing)
             
             // MARK: - 6. Alignment Placeholder (14x14 - Matching Remove Button)

@@ -182,7 +182,7 @@ public final class MacSliderNSView: NSView {
         context.restoreGState()
         
         // ---------------------------------------------------------
-        // 3. ACTIVE PROGRESS FILL
+        // 3. ACTIVE PROGRESS FILL (Smooth Transition between 100% and Boost)
         // ---------------------------------------------------------
         let progress = CGFloat(max(0.0, min(maxValue, value)) / maxValue)
         let effectiveProgress = isMuted ? 0.0 : progress
@@ -201,20 +201,38 @@ public final class MacSliderNSView: NSView {
                 context.setFillColor(NSColor(white: 0.30, alpha: 0.40).cgColor)
                 context.fill(activeRect)
             } else {
-                // Vibrant macOS Accent Blue / Boost Amber
-                let isBoosted = value > baselineValue
-                let startColor = accentColor.withAlphaComponent(1.0).cgColor
-                let endColor = (isBoosted ? boostColor : accentColor).withAlphaComponent(1.0).cgColor
-                
-                let colors = [startColor, endColor] as CFArray
                 let colorSpace = CGColorSpaceCreateDeviceRGB()
-                if let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: [0.0, 1.0]) {
-                    context.drawLinearGradient(
-                        gradient,
-                        start: CGPoint(x: activeRect.minX, y: activeRect.midY),
-                        end: CGPoint(x: activeRect.maxX, y: activeRect.midY),
-                        options: []
-                    )
+                let baselineNorm = CGFloat(baselineValue / maxValue) // 0.5 (100% point)
+                
+                if effectiveProgress <= baselineNorm {
+                    // Normal zone (0% - 100%): Pure Accent Color
+                    context.setFillColor(accentColor.cgColor)
+                    context.fill(activeRect)
+                } else {
+                    // Boosted zone (> 100%): Seamless gradient starting at 100% and transitioning smoothly to boostColor
+                    // Calculate relative position of baseline tick inside activeRect
+                    let tickInsideActive = (trackWidth * baselineNorm) / activeWidth
+                    let startGradLoc = max(0.0, tickInsideActive - 0.05)
+                    let boostFactor = CGFloat((value - baselineValue) / (maxValue - baselineValue)) // 0.0 at 100% -> 1.0 at 200%
+                    
+                    // Dynamic smoothly blended boost color based on how far past 100% we are
+                    let currentBoostColor = accentColor.blended(withFraction: boostFactor, of: boostColor) ?? boostColor
+                    
+                    let gradColors = [
+                        accentColor.cgColor,
+                        accentColor.cgColor,
+                        currentBoostColor.cgColor
+                    ] as CFArray
+                    
+                    let locations: [CGFloat] = [0.0, startGradLoc, 1.0]
+                    if let gradient = CGGradient(colorsSpace: colorSpace, colors: gradColors, locations: locations) {
+                        context.drawLinearGradient(
+                            gradient,
+                            start: CGPoint(x: activeRect.minX, y: activeRect.midY),
+                            end: CGPoint(x: activeRect.maxX, y: activeRect.midY),
+                            options: []
+                        )
+                    }
                 }
             }
             context.restoreGState()

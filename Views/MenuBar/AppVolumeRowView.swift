@@ -197,7 +197,12 @@ public struct AppVolumeRowView: View {
             Text("\(Int(round(localVolume * 100)))%")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundColor(process.isMuted ? Color.secondary.opacity(0.4) : (localVolume > 1.0 ? Color.orange : Color.secondary))
+                .foregroundColor(
+                    process.isMuted
+                        ? Color.secondary.opacity(0.4)
+                        : (localVolume > 1.0 ? Color.orange : Color.secondary)
+                )
+                .animation(.easeInOut(duration: 0.18), value: localVolume > 1.0)
                 .frame(width: 34, alignment: .trailing)
             
             // MARK: - 6. Optional Remove Button (14x14)
