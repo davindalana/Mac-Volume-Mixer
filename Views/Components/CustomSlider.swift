@@ -94,9 +94,9 @@ public final class MacSliderNSView: NSView {
     public var onEditingChanged: ((Bool) -> Void)?
     
     // Native macOS Control Center capsule slider dimensions
-    private let knobWidth: CGFloat = 8.0
-    private let knobHeight: CGFloat = 16.0
-    private let trackHeight: CGFloat = 6.0
+    private let knobWidth: CGFloat = 16.0
+    private let knobHeight: CGFloat = 14.0
+    private let trackHeight: CGFloat = 5.0
     private var isDragging: Bool = false
     private var isHovered: Bool = false
     public var isCurrentlyDragging: Bool { isDragging }
@@ -157,25 +157,12 @@ public final class MacSliderNSView: NSView {
         let bgPath = CGPath(roundedRect: trackRect, cornerWidth: cornerR, cornerHeight: cornerR, transform: nil)
         
         // ---------------------------------------------------------
-        // 1. LIQUID GLASS BACKGROUND TROUGH (Frosted Translucent Groove)
+        // 1. BACKGROUND GROOVE TRACK (Clean Dark Charcoal macOS Slider Track)
         // ---------------------------------------------------------
         context.saveGState()
-        // Translucent dark-glass base fill
         context.addPath(bgPath)
-        context.setFillColor(NSColor(white: 0.12, alpha: isHovered ? 0.65 : 0.50).cgColor)
+        context.setFillColor(NSColor(white: 0.22, alpha: 0.55).cgColor)
         context.fillPath()
-        
-        // Subtle inner ambient shadow inside trough
-        context.addPath(bgPath)
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.35).cgColor)
-        context.setLineWidth(0.8)
-        context.strokePath()
-        
-        // Glass specular top-edge illumination (Frosted Glass Rim)
-        context.addPath(bgPath)
-        context.setStrokeColor(NSColor(white: 1.0, alpha: isHovered ? 0.20 : 0.12).cgColor)
-        context.setLineWidth(0.6)
-        context.strokePath()
         context.restoreGState()
         
         // ---------------------------------------------------------
@@ -190,12 +177,12 @@ public final class MacSliderNSView: NSView {
         
         context.saveGState()
         context.addPath(tickPath)
-        context.setFillColor(NSColor(white: 1.0, alpha: isHovered ? 0.35 : 0.22).cgColor)
+        context.setFillColor(NSColor(white: 1.0, alpha: isHovered ? 0.35 : 0.20).cgColor)
         context.fillPath()
         context.restoreGState()
         
         // ---------------------------------------------------------
-        // 3. LIQUID GLASS ACTIVE PROGRESS FILL (Dynamic Glowing Capsule)
+        // 3. ACTIVE PROGRESS FILL
         // ---------------------------------------------------------
         let progress = CGFloat(max(0.0, min(maxValue, value)) / maxValue)
         let effectiveProgress = isMuted ? 0.0 : progress
@@ -214,9 +201,9 @@ public final class MacSliderNSView: NSView {
                 context.setFillColor(NSColor(white: 0.30, alpha: 0.40).cgColor)
                 context.fill(activeRect)
             } else {
-                // Vibrant Liquid Gradient
+                // Vibrant macOS Accent Blue / Boost Amber
                 let isBoosted = value > baselineValue
-                let startColor = accentColor.withAlphaComponent(0.95).cgColor
+                let startColor = accentColor.withAlphaComponent(1.0).cgColor
                 let endColor = (isBoosted ? boostColor : accentColor).withAlphaComponent(1.0).cgColor
                 
                 let colors = [startColor, endColor] as CFArray
@@ -229,115 +216,62 @@ public final class MacSliderNSView: NSView {
                         options: []
                     )
                 }
-                
-                // Specular Glass Sheen Highlight on Top Half
-                let sheenRect = CGRect(x: activeRect.minX, y: activeRect.minY, width: activeRect.width, height: activeRect.height * 0.45)
-                let sheenColors = [
-                    NSColor(white: 1.0, alpha: 0.35).cgColor,
-                    NSColor(white: 1.0, alpha: 0.05).cgColor
-                ] as CFArray
-                if let sheenGradient = CGGradient(colorsSpace: colorSpace, colors: sheenColors, locations: [0.0, 1.0]) {
-                    context.drawLinearGradient(
-                        sheenGradient,
-                        start: CGPoint(x: sheenRect.midX, y: sheenRect.minY),
-                        end: CGPoint(x: sheenRect.midX, y: sheenRect.maxY),
-                        options: []
-                    )
-                }
             }
             context.restoreGState()
-            
-            // Soft Outer Ambient Glow if dragging or hovered
-            if isDragging && !isMuted {
-                context.saveGState()
-                context.addPath(activePath)
-                let glowColor = (value > baselineValue ? boostColor : accentColor).withAlphaComponent(0.40).cgColor
-                context.setShadow(offset: .zero, blur: 4.0, color: glowColor)
-                context.setStrokeColor(NSColor(white: 1.0, alpha: 0.40).cgColor)
-                context.setLineWidth(0.6)
-                context.strokePath()
-                context.restoreGState()
-            }
         }
         
         // ---------------------------------------------------------
-        // 4. APPLE NATIVE OVAL CAPSULE THUMB (macOS Sound / Control Center Style)
+        // 4. APPLE NATIVE HORIZONTAL PILL / OVAL THUMB (macOS Display & Sound Slider)
         // ---------------------------------------------------------
         let knobX = halfKnobW + (trackWidth * effectiveProgress)
         let knobCenterY = bounds.height / 2
         
-        // Elegant vertical oval capsule like macOS Control Center & System Settings
+        // Horizontal rounded pill (wider than tall, e.g. 16x14 pt)
         let currentW: CGFloat = isDragging ? (knobWidth + 1.0) : (isHovered ? (knobWidth + 0.5) : knobWidth)
-        let currentH: CGFloat = isDragging ? (knobHeight + 1.5) : (isHovered ? (knobHeight + 0.5) : knobHeight)
+        let currentH: CGFloat = isDragging ? (knobHeight + 0.5) : knobHeight
         let knobRect = CGRect(x: knobX - (currentW / 2), y: knobCenterY - (currentH / 2), width: currentW, height: currentH)
-        let capsuleCorner = currentW / 2
-        let capsulePath = CGPath(roundedRect: knobRect, cornerWidth: capsuleCorner, cornerHeight: capsuleCorner, transform: nil)
+        let pillCorner = currentH / 2
+        let pillPath = CGPath(roundedRect: knobRect, cornerWidth: pillCorner, cornerHeight: pillCorner, transform: nil)
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         
-        // A. Multi-layer Tactile Drop Shadow
+        // A. Subtle Tactile Drop Shadow
         context.saveGState()
         context.setShadow(
-            offset: CGSize(width: 0, height: isDragging ? -2.2 : -1.2),
-            blur: isDragging ? 5.0 : 3.0,
-            color: NSColor.black.withAlphaComponent(isDragging ? 0.42 : 0.30).cgColor
+            offset: CGSize(width: 0, height: isDragging ? -1.8 : -1.0),
+            blur: isDragging ? 4.5 : 2.5,
+            color: NSColor.black.withAlphaComponent(isDragging ? 0.38 : 0.25).cgColor
         )
-        context.setFillColor(NSColor(white: 0.98, alpha: 1.0).cgColor)
-        context.addPath(capsulePath)
+        context.setFillColor(NSColor(white: 0.88, alpha: 1.0).cgColor)
+        context.addPath(pillPath)
         context.fillPath()
         context.restoreGState()
         
-        // B. Pure Apple Frosted Capsule Gradient (Smooth vertical sheen)
+        // B. Native Apple Solid/Matte Light Grey Fill with Subtle Sheen
         context.saveGState()
-        context.addPath(capsulePath)
+        context.addPath(pillPath)
         context.clip()
-        let knobGradientColors = [
-            NSColor(white: 1.0, alpha: 1.0).cgColor,
-            NSColor(white: 0.96, alpha: 1.0).cgColor,
-            NSColor(white: 0.90, alpha: 1.0).cgColor
+        
+        // Apple matte light silver / whitish fill
+        let pillColors = [
+            NSColor(white: 0.94, alpha: 1.0).cgColor,
+            NSColor(white: 0.85, alpha: 1.0).cgColor
         ] as CFArray
-        if let knobGrad = CGGradient(colorsSpace: colorSpace, colors: knobGradientColors, locations: [0.0, 0.5, 1.0]) {
+        if let pillGrad = CGGradient(colorsSpace: colorSpace, colors: pillColors, locations: [0.0, 1.0]) {
             context.drawLinearGradient(
-                knobGrad,
+                pillGrad,
                 start: CGPoint(x: knobRect.midX, y: knobRect.minY),
                 end: CGPoint(x: knobRect.midX, y: knobRect.maxY),
                 options: []
             )
         }
-        
-        // Subtle top specular highlight on upper half
-        let topSheenRect = CGRect(x: knobRect.minX + 0.6, y: knobRect.minY + 0.5, width: currentW - 1.2, height: (currentH - 1.0) * 0.45)
-        let topSheenPath = CGPath(roundedRect: topSheenRect, cornerWidth: (currentW - 1.2) / 2, cornerHeight: (currentW - 1.2) / 2, transform: nil)
-        context.addPath(topSheenPath)
-        let topSheenColors = [
-            NSColor(white: 1.0, alpha: 0.65).cgColor,
-            NSColor(white: 1.0, alpha: 0.05).cgColor
-        ] as CFArray
-        if let sheenGrad = CGGradient(colorsSpace: colorSpace, colors: topSheenColors, locations: [0.0, 1.0]) {
-            context.clip()
-            context.drawLinearGradient(
-                sheenGrad,
-                start: CGPoint(x: topSheenRect.midX, y: topSheenRect.minY),
-                end: CGPoint(x: topSheenRect.midX, y: topSheenRect.maxY),
-                options: []
-            )
-        }
         context.restoreGState()
         
-        // C. Clean Specular Perimeter Stroke
+        // C. Clean Subtle Border Stroke
         context.saveGState()
-        context.addPath(capsulePath)
-        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.14).cgColor)
+        context.addPath(pillPath)
+        context.setStrokeColor(NSColor(white: 0.0, alpha: 0.12).cgColor)
         context.setLineWidth(0.6)
-        context.strokePath()
-        
-        // Inner white light rim
-        let innerRimRect = knobRect.insetBy(dx: 0.6, dy: 0.6)
-        let innerRimCorner = max(1.0, (currentW - 1.2) / 2)
-        let innerRimPath = CGPath(roundedRect: innerRimRect, cornerWidth: innerRimCorner, cornerHeight: innerRimCorner, transform: nil)
-        context.addPath(innerRimPath)
-        context.setStrokeColor(NSColor(white: 1.0, alpha: 0.70).cgColor)
-        context.setLineWidth(0.5)
         context.strokePath()
         context.restoreGState()
     }
