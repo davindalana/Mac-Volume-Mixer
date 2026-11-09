@@ -9,13 +9,11 @@ public struct PopoverView: View {
     @State private var isShowingSettingsPopover: Bool = false
     @State private var isShowingAddAppPopover: Bool = false
     @State private var isShowingMasterDevicePopover: Bool = false
-    @State private var isShowingSystemRowDevicePopover: Bool = false
     
     // Hover states for smooth background feedback without text popups
     @State private var isMasterDeviceHovered: Bool = false
     @State private var isSystemRowHovered: Bool = false
     @State private var isSystemMuteHovered: Bool = false
-    @State private var isSystemDeviceHovered: Bool = false
     @State private var isSettingsHovered: Bool = false
     @State private var isAddAppHovered: Bool = false
     
@@ -335,61 +333,18 @@ public struct PopoverView: View {
             }
             .frame(width: 26, height: 26)
             
-            // MARK: - 2. System Title & Output Device Pill (106)
+            // MARK: - 2. System Title & Subtitle (106)
             VStack(alignment: .leading, spacing: 2) {
                 Text("System Audio")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(viewModel.isMasterMuted ? Color.secondary.opacity(0.6) : Color.primary)
                     .lineLimit(1)
                 
-                Button(action: {
-                    isShowingSystemRowDevicePopover.toggle()
-                }) {
-                    HStack(spacing: 3) {
-                        Image(systemName: viewModel.selectedOutputDevice?.systemIconName ?? "speaker.wave.2.fill")
-                            .font(.system(size: 7.5))
-                        Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
-                            .font(.system(size: 9.5, weight: .medium))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 6, weight: .bold))
-                            .opacity(0.65)
-                    }
-                    .foregroundColor(isSystemDeviceHovered ? Color.primary : Color.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2.5)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.white.opacity(isSystemDeviceHovered ? 0.16 : 0.07))
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(isSystemDeviceHovered ? 0.22 : 0.10), lineWidth: 0.7)
-                            )
-                    )
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .pointingHandOnHover()
-                .onHover { h in
-                    isSystemDeviceHovered = h
-                }
-                .animation(.easeInOut(duration: 0.12), value: isSystemDeviceHovered)
-                .popover(isPresented: $isShowingSystemRowDevicePopover, arrowEdge: .bottom) {
-                    DevicePickerPopover(
-                        appName: "Output Sistem",
-                        availableDevices: viewModel.outputDevices,
-                        currentDeviceUID: viewModel.selectedOutputDevice?.uid,
-                        onSelect: { selectedDev in
-                            if let dev = selectedDev {
-                                viewModel.selectOutputDevice(dev)
-                            }
-                        },
-                        onClose: {
-                            isShowingSystemRowDevicePopover = false
-                        }
-                    )
-                }
+                Text(viewModel.selectedOutputDevice?.name ?? "Speakers")
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundColor(.secondary.opacity(0.85))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             .frame(width: 106, alignment: .leading)
             
